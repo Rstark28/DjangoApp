@@ -2,8 +2,9 @@ from django.contrib import messages
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.views import PasswordResetView
 from django.contrib.auth import authenticate, login as auth_login, logout
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from .forms import CreateUserForm, CustomPasswordResetForm
+from .models import NFLTeam
 from django.http import HttpRequest, HttpResponse
 
 # name:       home
@@ -14,6 +15,27 @@ from django.http import HttpRequest, HttpResponse
 def home(request: HttpRequest) -> HttpResponse:
 
     return render(request, 'app_template/home.html')
+
+# name:       historical_data
+# purpose:    Renders the historical data page.
+# parameters:
+# request:    HttpRequest object
+# returns:    HttpResponse object rendering 'app_template/historical_data.html'
+def historical_data(request: HttpRequest) -> HttpResponse:
+
+    team_abbreviation = request.GET.get('team_abbreviation')
+    nfl_teams = NFLTeam.objects.all()
+
+    if team_abbreviation:
+        selected_team = get_object_or_404(NFLTeam, abbreviation=team_abbreviation)
+    else:
+        selected_team = nfl_teams.first()
+
+    context = {
+        'nfl_teams': nfl_teams,
+        'selected_team': selected_team,
+    }
+    return render(request, 'app_template/historical_data.html', context)
 
 # name:       register
 # purpose:    Handles user registration.
