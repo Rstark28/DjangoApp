@@ -55,14 +55,17 @@ class Command(BaseCommand):
                 awayStr = team_name=[2].get_text() 
                 homeStr = team_name=cells[5].get_text()
                 
+                cityArr = homeStr.split()[:-1]
+                cityStr = ' '.join(cityArr)
                 
-                currHome = teams.get(homeStr)
-                currAway = teams.get(awayStr)
+                
+                currHome = teams.get(name=homeStr)
+                currAway = teams.get(name=awayStr)
                 currWeek = int(week[0].get_text())
                 ByeDict[int(currWeek)].add(currHome)
                 ByeDict[int(currWeek)].add(currAway)
                 
-            
+
                 awayBye = int(currWeek) > 1 and (currAway not in ByeDict[currWeek-1])
                 homeBye = int(currWeek) > 1 and (currHome not in ByeDict[currWeek-1])
                 
@@ -77,7 +80,7 @@ class Command(BaseCommand):
                     season = 2024,
                     after_bye_home = homeBye,
                     after_bye_away = awayBye,
-                    city = 'Placeholder',
+                    city = cityStr,
                     isNeutral = False,
                     isComplete = False
                     
