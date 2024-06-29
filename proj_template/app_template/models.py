@@ -66,14 +66,14 @@ class UpcomingGames(models.Model):
         return f"{self.date} - {self.awayTeam} @ {self.homeTeam}"
     
 class Projection(models.Model):
-    n = models.IntegerField(),
-    mean = models.FloatField(),
-    median = models.FloatField(),
-    madePlayoffs = models.IntegerField(),
-    wonDivision = models.IntegerField(),
-    wonConference = models.IntegerField(),
-    wonSuperBowl = models.IntegerField(),
-    stdv = models.FloatField(),
+    n = models.IntegerField()
+    mean = models.FloatField()
+    median = models.FloatField()
+    madePlayoffs = models.IntegerField()
+    wonDivision = models.IntegerField()
+    wonConference = models.IntegerField()
+    wonSuperBowl = models.IntegerField()
+    stdv = models.FloatField()
     ptdiff = models.FloatField()
     
     def __str__(self):
