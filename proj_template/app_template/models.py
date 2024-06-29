@@ -66,6 +66,7 @@ class UpcomingGames(models.Model):
         return f"{self.date} - {self.awayTeam} @ {self.homeTeam}"
     
 class Projection(models.Model):
+    team = models.ForeignKey(NFLTeam, on_delete=models.CASCADE)
     n = models.IntegerField()
     mean = models.FloatField()
     median = models.FloatField()
@@ -75,6 +76,7 @@ class Projection(models.Model):
     wonSuperBowl = models.IntegerField()
     stdv = models.FloatField()
     ptdiff = models.FloatField()
+    
     
     def __str__(self):
         return f"A projection to win {round(self.median)}, making the playoffs {round(self.madePlayoffs / self.n, 4) * 100}% of the time"
