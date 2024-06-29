@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from django.contrib.auth.models import User
+import math
 
 class Post(models.Model):
     title = models.CharField(max_length=100)
@@ -63,4 +64,19 @@ class UpcomingGames(models.Model):
     awayScore = models.IntegerField()
     def __str__(self):
         return f"{self.date} - {self.awayTeam} @ {self.homeTeam}"
+    
+class Projection(models.Model):
+    n = models.IntegerField(),
+    mean = models.FloatField(),
+    median = models.FloatField(),
+    madePlayoffs = models.IntegerField(),
+    wonDivision = models.IntegerField(),
+    wonConference = models.IntegerField(),
+    wonSuperBowl = models.IntegerField(),
+    stdv = models.FloatField(),
+    ptdiff = models.FloatField()
+    
+    def __str__(self):
+        return f"A projection to win {round(self.median)}, making the playoffs {round(self.madePlayoffs / self.n, 4) * 100}% of the time"
+    
 
