@@ -46,14 +46,14 @@ class Command(BaseCommand):
                     self.stdout.write(self.style.ERROR(f"Invalid Day: {day}"))
                     continue
                 
-                if month == 1 or month == 2:
+                if monthNum == 1 or monthNum == 2:
                     year = 2025
                 else:
                     year = 2024
-                currDate = f"{day}-{month}-year".date()
+                currDate = f"{day}-{monthNum}-year".date()
 
-                awayStr = team_name=[2].get_text() 
-                homeStr = team_name=cells[5].get_text()
+                awayStr = cells[2].get_text() 
+                homeStr = cells[5].get_text()
                 
                 cityArr = homeStr.split()[:-1]
                 cityStr = ' '.join(cityArr)
