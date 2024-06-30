@@ -21,7 +21,7 @@ class Command(BaseCommand):
                 return response.text
             else:
                 return None
-        url = f"https://www.pro-football-reference.com/years/{year}/games.htm"
+        url = f"https://www.pro-football-reference.com/years/2024/games.htm"
         html = get_html(url)
         if html == None:
             return None
@@ -83,7 +83,7 @@ class Command(BaseCommand):
                     city = cityStr,
                     isNeutral = False,
                     isComplete = False
-                    
                 )
+        self.stdout.write(self.style.SUCCESS("Successfully generate all games"))
                 
         
