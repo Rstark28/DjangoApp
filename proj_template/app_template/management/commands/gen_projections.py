@@ -21,7 +21,7 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         
         
-        kFactor = 20
+        kFactor = 20.0
         teams = NFLTeam.objects.all()
         cities = City.objects.all()
         
@@ -61,21 +61,33 @@ class Command(BaseCommand):
             homeDiff += awayDistance * 4 / 1000
             homeOdds = 1/(10**(-1*homeDiff/400)+1)
             return homeOdds
-        def addWin(winner: str, loser: str, df: pd.DataFrame, divisionDict: dict):
+        def addWin(winner: str, loser: str, df: pd.DataFrame):
             df.loc[winner, 'TotWins'] +=  1 
-            winnerDiv = divisionDict[winner]
-            loserDiv = divisionDict[loser]
+            winnerDiv = df.loc[winner, 'Division']
+            loserDiv = df.loc[loser, 'Division']
             if winnerDiv == loserDiv:
                 df.loc[winner, 'DivWins'] += 1
                 df.loc[winner, 'ConfWins'] += 1
             elif winnerDiv.split()[0] == loserDiv.split()[0]:
                 df.loc[winner, 'ConfWins'] += 1
+
+            if df.loc[winner, 'TeamsBeat'] == '':
+                df.loc[winner, 'TeamsBeat'] += f"{loser}"
+            else:
+                df.loc[winner, 'TeamsBeat'] += f";{loser}"
+                
+            if df.loc[loser, 'TeamsLostTo'] == '':
+                df.loc[loser, 'TeamsLostTo'] = loser
+            else:
+                df.loc[loser, 'TeamsLostTo'] += f";{winner}"
             
-            df.loc[winner, 'TeamsBeat'] += f";{loser}"
-            df.loc[loser, 'TeamsLostTo'] += f";{winner}"
+        def adjustElo(winner: str, loser: str, winnerOdds: float, kFactor: float, df: pd.DataFrame):
+            proportion = 1 - winnerOdds
+            change = proportion * kFactor
+            df.loc[winner, 'Elo'] += change
+            df.loc[loser, 'Elo'] -= change
             
-        def adjustElo(winner: str, loser: str, winnerOdds: float):
-            pass
+            
         divisionDict = {
             "Buffalo Bills": "AFC East",
             "Miami Dolphins": "AFC East",
@@ -124,6 +136,9 @@ class Command(BaseCommand):
             trackerDF.loc[name, 'DivWins'] = team.divWins
             trackerDF.loc[name, 'TeamsLostTo'] = ''
             trackerDF.loc[name, 'TeamsBeat'] = ''
+            trackerDF.loc[name, 'Division'] = divisionDict[name]
+            trackerDF.loc[name, 'Seed'] = -1
+            trackerDF.loc[name, 'Playoff Round'] = 'None'
         
         
         games = UpcomingGames.objects.all().filter(isComplete=False)
@@ -137,11 +152,92 @@ class Command(BaseCommand):
                 homeOdds = getHomeOddsStandard(game, trackerDF)
                 randNumber = random.random()
                 if randNumber < homeOdds:
-                    addWin(homeTeamName, awayTeamName, trackerDF, divisionDict)
-                    adjustElo(homeTeamName, awayTeamName, homeOdds)
+                    addWin(homeTeamName, awayTeamName, trackerDF)
+                    adjustElo(homeTeamName, awayTeamName, homeOdds, kFactor, trackerDF)
                 else:
-                    addWin(awayTeamName, homeTeamName, trackerDF, divisionDict)
-                    adjustElo(awayTeamName, homeTeamName, 1 - homeOdds)
+                    addWin(awayTeamName, homeTeamName, trackerDF)
+                    adjustElo(awayTeamName, homeTeamName, 1 - homeOdds, kFactor, trackerDF)
+        
+        AFCEast = trackerDF[trackerDF['Division'] == 'AFC East']['Team'].to_list()
+        AFCWest = trackerDF[trackerDF['Division'] == 'AFC West']['Team'].to_list()
+        AFCNorth = trackerDF[trackerDF['Division'] == 'AFC North']['Team'].to_list()
+        AFCSouth = trackerDF[trackerDF['Division'] == 'AFC South']['Team'].to_list()
+        
+        NFCEast = trackerDF[trackerDF['Division'] == 'NFC East']['Team'].to_list()
+        NFCWest = trackerDF[trackerDF['Division'] == 'NFC West']['Team'].to_list()
+        NFCSouth = trackerDF[trackerDF['Division'] == 'NFC South']['Team'].to_list()
+        NFCNorth = trackerDF[trackerDF['Division'] == 'NFC North']['Team'].to_list()
+        
+        AllDivisions = [AFCEast, AFCWest, AFCNorth, AFCSouth, NFCEast, NFCWest, NFCSouth, NFCNorth]
+        
+        
+        
+        AFCDivisionWinners = []
+        NFCDivisionWinnes = []
+        
+        def divBreakTieHelper(tied: list[str], div: list[str], df: pd.DataFrame):
+            
+            if len(tied) == 1:
+                return tied[0]
+            
+            tiedOrig = len(tied)
+            
+            commonScore = {team: 0 for team in tied}
+            for i in range(len(tied)):
+                team = tied[i]
+                teamsBeat = df.loc[team, 'TeamsBeat'].split(';')
+                teamsLost = df.loc[team, 'TeamsLostTo'].split(';')
+                otherTeams = tied[:i] + tied[i+1:]
+                for otherTeam in otherTeams:
+                    commonScore[team] += teamsBeat.count(otherTeam)
+                    commonScore[team] -= teamsLost.count(otherTeam)
+            
+            tied.sort(key=lambda x: -commonScore[x])
+            
+            highest = tied[0]
+            tied = [team for team in tied if commonScore[team] == commonScore[highest]]
+            if tiedOrig > len(tied):
+                return divBreakTieHelper(tied, div, df)
+            
+            tied.sort(key = lambda x: -df.loc[x, 'DivWins'])
+            highest = tied[0]
+            tied = [team for team in tied if commonScore[team] == commonScore[highest]]
+            if tiedOrig > len(tied):
+                return divBreakTieHelper(tied, div, df)
+            
+            tied.sort(key = lambda x: -df.loc[x, 'ConfWins'])
+            highest = tied[0]
+            tied = [team for team in tied if commonScore[team] == commonScore[highest]]
+            if tiedOrig > len(tied):
+                return divBreakTieHelper(tied, div, df)
+            
+            return random.choice(tied)
+            
+            
+            
+            
+            
+            
+            
+                
+            
+        
+        def divTieBreaker(div: list[str], df: pd.DataFrame) -> str:
+            firstPlace = div[0]
+            tiedForFirst = [firstPlace]
+            for team in div[1:]:
+                if df.loc[team, 'TotWins'] == df.loc[firstPlace, 'TotWins']:
+                    tiedForFirst.append(team)
+            winner = divBreakTieHelper(tiedForFirst, div, df)
+            return winner
+                
+         
+        for div in AllDivisions:
+            div.sort(key=lambda x: -trackerDF.loc[x, 'TotWins'])
+            winner = divTieBreaker(div, trackerDF)
+            trackerDF.loc[winner, 'Seed'] = 1
+            
+            
                     
         trackerDF.to_csv("test.csv", mode='w+', index=False)  
                 
