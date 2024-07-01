@@ -76,6 +76,10 @@ class Season(models.Model):
     playoffRound = models.CharField(max_length=50)
     seeding = models.IntegerField()
     
+class City(models.Model):
+    name = models.CharField(max_length=50)   
+    long = models.FloatField()
+    lat = models.FloatField()
     
 class Projection(models.Model):
     team = models.ForeignKey(NFLTeam, on_delete=models.CASCADE)
