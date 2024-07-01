@@ -13,7 +13,8 @@ class Command(BaseCommand):
                 NFLTeam.objects.create(
                     team_name=row['Team Name'],
                     abbreviation=row['Abbreviation'],
-                    color_hex=row['Color']
+                    color_hex=row['Color'],
+                    elo = float(row['Elo'])
                 )
 
         self.stdout.write(self.style.SUCCESS('Successfully imported NFL teams'))

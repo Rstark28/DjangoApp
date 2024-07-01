@@ -42,6 +42,11 @@ class NFLTeam(models.Model):
     team_name = models.CharField(max_length=100)
     abbreviation = models.CharField(max_length=3, unique=True)
     color_hex = models.CharField(max_length=7)
+    totWins = models.IntegerField(default=0)
+    divWins = models.IntegerField(default=0)
+    confWins = models.IntegerField(default=0)
+    elo = models.FloatField()
+    
 
     # Many-to-Many relationship with HistoricalData
     historical_games = models.ManyToManyField(HistoricalData, related_name='teams', blank=True)
@@ -68,7 +73,7 @@ class UpcomingGames(models.Model):
 class Season(models.Model):
     team = models.ForeignKey(NFLTeam, on_delete=models.CASCADE)
     wins = models.IntegerField()
-    playoffRound = models.charField(max_length=50)
+    playoffRound = models.CharField(max_length=50)
     seeding = models.IntegerField()
     
     
@@ -83,7 +88,8 @@ class Projection(models.Model):
     wonSuperBowl = models.IntegerField()
     stdv = models.FloatField()
     ptdiff = models.FloatField()
-    seasons = models.ManyToManyField(Season, related_name='projections', on_delete=models.CASCADE)
+    seasons = models.ManyToManyField(Season, related_name='projections')
+    currWeek = models.IntegerField()
     
     
     def __str__(self):
