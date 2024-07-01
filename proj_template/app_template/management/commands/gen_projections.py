@@ -10,6 +10,8 @@ from datetime import datetime
 from datetime import date
 import pandas as pd
 import numpy as np
+import math
+from geopy.distance import geodesic
 
 class Command(BaseCommand):
     help = 'Updates/Generates the projections'
@@ -20,13 +22,45 @@ class Command(BaseCommand):
         teams = NFLTeam.objects.all()
         cities = City.objects.all()
         
-        def getHomeOdds(Game: UpcomingGames, tracker: dict) -> float:
+        def calculateDistance(city1: float, city2: float) -> float:
+            return geodesic(city1, city2).miles
+        
+        
+        def getHomeOddsStandard(Game: UpcomingGames, df: pd.DataFrame) -> float:
+            cities = City.objects.all()
             awayTeam = Game.awayTeam
             homeTeam = Game.homeTeam
             homeName = homeTeam.team_name
-            awayName = homeTeam.team_name
-            awayElo = tracker[awayName]['Elo']
-            homeElo = tracker[homeName]['Elo']
+            awayName = awayTeam.team_name
+            awayElo = df.loc[awayName, 'Elo']
+            homeElo = df.loc[homeName, 'Elo']
+            cityName = Game.city
+            homeCityName = ' '.join((homeName.split(' '))[:-1])
+            awayCityName = ' '.join((awayName.split(' '))[:-1])
+            gameCity = cities.get(name=cityName)
+            homeCity = cities.get(name=homeCityName)
+            awayCity = cities.get(name=awayCityName)
+            gameCords = (gameCity.lat,  gameCity.long)
+            homeCords = (homeCity.lat, homeCity.long)
+            awayCords = (awayCity.lat, awayCity.long)
+            
+            homeDistance = calculateDistance(gameCords, homeCords)
+            awayDistance = calculateDistance(gameCords, awayCords)
+            
+            homeDiff = homeElo - awayElo
+            if Game.after_bye_home:
+                homeDiff += 25
+            if Game.after_bye_away:
+                homeDiff -= 25
+            if not Game.isNeutral:
+                homeDiff += 48
+            homeDiff -= homeDistance * 4 / 1000
+            homeDiff += awayDistance * 4 / 1000
+            homeOdds = 1/(10**(-1*homeDiff/400)+1)
+            return homeOdds
+             
+            
+            
         
         #Created To Avoid Modifying the Team Class   
         trackerList = {team.team_name: {
@@ -53,5 +87,6 @@ class Command(BaseCommand):
         
         games = UpcomingGames.objects.all().filter(isComplete=False)
         for i in range(1, 18):
-            ...
+            weeklyGames = games.filter(week=i)
+            getHomeOdds(weeklyGames.first(), trackerDF)
         
