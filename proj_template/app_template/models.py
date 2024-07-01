@@ -45,7 +45,7 @@ class NFLTeam(models.Model):
     totWins = models.IntegerField(default=0)
     divWins = models.IntegerField(default=0)
     confWins = models.IntegerField(default=0)
-    elo = models.FloatField()
+    elo = models.FloatField(default=float(0))
     
 
     # Many-to-Many relationship with HistoricalData
@@ -89,7 +89,7 @@ class Projection(models.Model):
     stdv = models.FloatField()
     ptdiff = models.FloatField()
     seasons = models.ManyToManyField(Season, related_name='projections')
-    currWeek = models.IntegerField()
+    currWeek = models.IntegerField(default = 0)
     
     
     def __str__(self):
