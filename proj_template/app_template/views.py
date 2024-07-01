@@ -21,19 +21,19 @@ def home(request: HttpRequest) -> HttpResponse:
 # parameters:
 # request:    HttpRequest object
 # returns:    HttpResponse object rendering 'app_template/historical_data.html'
-def historical_data(request: HttpRequest) -> HttpResponse:
-
+def historical_data(request):
     team_abbreviation = request.GET.get('team_abbreviation')
-    nfl_teams = NFLTeam.objects.all()
+    selected_team = None
+    historical_games = []
 
     if team_abbreviation:
-        selected_team = get_object_or_404(NFLTeam, abbreviation=team_abbreviation)
-    else:
-        selected_team = nfl_teams.first()
+        selected_team = NFLTeam.objects.get(abbreviation=team_abbreviation)
+        historical_games = selected_team.historical_games.all().values('date', 'elo1_post', 'season')
 
     context = {
-        'nfl_teams': nfl_teams,
+        'nfl_teams': NFLTeam.objects.all(),
         'selected_team': selected_team,
+        'historical_games': list(historical_games),
     }
     return render(request, 'app_template/historical_data.html', context)
 
