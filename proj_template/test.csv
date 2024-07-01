@@ -1,33 +1,33 @@
 Elo,TotWins,DivWins,ConfWins,TeamsLostTo,TeamsBeat,Team
-1348.0,0,0,0,,,Arizona Cardinals
-1406.0,0,0,0,,,Atlanta Falcons
-1685.0,0,0,0,,,Baltimore Ravens
-1672.0,0,0,0,,,Buffalo Bills
-1283.0,0,0,0,,,Carolina Panthers
-1456.0,0,0,0,,,Chicago Bears
-1576.0,0,0,0,,,Cincinnati Bengals
-1504.0,0,0,0,,,Cleveland Browns
-1606.0,0,0,0,,,Dallas Cowboys
-1463.0,0,0,0,,,Denver Broncos
-1605.0,0,0,0,,,Detroit Lions
-1591.0,0,0,0,,,Green Bay Packers
-1502.0,0,0,0,,,Houston Texans
-1449.0,0,0,0,,,Indianapolis Colts
-1481.0,0,0,0,,,Jacksonville Jaguars
-1704.0,0,0,0,,,Kansas City Chiefs
-1501.0,0,0,0,,,Las Vegas Raiders
-1415.0,0,0,0,,,Los Angeles Chargers
-1531.0,0,0,0,,,Los Angeles Rams
-1554.0,0,0,0,,,Miami Dolphins
-1475.0,0,0,0,,,Minnesota Vikings
-1365.0,0,0,0,,,New England Patriots
-1365.0,0,0,0,,,New Orleans Saints
-1443.0,0,0,0,,,New York Giants
-1435.0,0,0,0,,,New York Jets
-1525.0,0,0,0,,,Philadelphia Eagles
-1550.0,0,0,0,,,Pittsburgh Steelers
-1703.0,0,0,0,,,San Francisco 49ers
-1499.0,0,0,0,,,Seattle Seahawks
-1534.0,0,0,0,,,Tampa Bay Buccaneers
-1406.0,0,0,0,,,Tennessee Titans
-1327.0,0,0,0,,,Washington Commanders
+1348.0,4,0,3,;Buffalo Bills;Los Angeles Rams;San Francisco 49ers;Green Bay Packers;Miami Dolphins;Chicago Bears;New York Jets;Seattle Seahawks;Minnesota Vikings;Seattle Seahawks;New England Patriots;Los Angeles Rams,;Detroit Lions;Washington Commanders;Los Angeles Chargers;Carolina Panthers,Arizona Cardinals
+1406.0,5,2,3,;Pittsburgh Steelers;Philadelphia Eagles;New Orleans Saints;Tampa Bay Buccaneers;Tampa Bay Buccaneers;Dallas Cowboys;Denver Broncos;Los Angeles Chargers;Minnesota Vikings;New York Giants;Washington Commanders,;Kansas City Chiefs;Carolina Panthers;Seattle Seahawks;New Orleans Saints;Las Vegas Raiders,Atlanta Falcons
+1685.0,11,3,7,;Kansas City Chiefs;Dallas Cowboys;Buffalo Bills;Cincinnati Bengals;Cincinnati Bengals,;Las Vegas Raiders;Washington Commanders;Tampa Bay Buccaneers;Cleveland Browns;Denver Broncos;Pittsburgh Steelers;Los Angeles Chargers;Philadelphia Eagles;New York Giants;Pittsburgh Steelers;Houston Texans,Baltimore Ravens
+1672.0,13,5,10,;Seattle Seahawks;Kansas City Chiefs;San Francisco 49ers,;Arizona Cardinals;Miami Dolphins;Jacksonville Jaguars;Baltimore Ravens;Houston Texans;New York Jets;Tennessee Titans;Miami Dolphins;Indianapolis Colts;Los Angeles Rams;Detroit Lions;New England Patriots;New York Jets,Buffalo Bills
+1283.0,7,3,6,;Las Vegas Raiders;Cincinnati Bengals;Chicago Bears;Atlanta Falcons;Denver Broncos;Kansas City Chiefs;Tampa Bay Buccaneers;Philadelphia Eagles;Arizona Cardinals,;New Orleans Saints;Los Angeles Chargers;Washington Commanders;New Orleans Saints;New York Giants;Dallas Cowboys;Tampa Bay Buccaneers,Carolina Panthers
+1456.0,9,1,5,;Indianapolis Colts;Green Bay Packers;Minnesota Vikings;Detroit Lions;San Francisco 49ers;Minnesota Vikings;Seattle Seahawks,;Tennessee Titans;Houston Texans;Los Angeles Rams;Carolina Panthers;Jacksonville Jaguars;Washington Commanders;Arizona Cardinals;New England Patriots;Detroit Lions,Chicago Bears
+1576.0,12,3,9,;Cleveland Browns;Philadelphia Eagles;Pittsburgh Steelers;Dallas Cowboys,;New England Patriots;Kansas City Chiefs;Washington Commanders;Carolina Panthers;Baltimore Ravens;New York Giants;Las Vegas Raiders;Baltimore Ravens;Los Angeles Chargers;Tennessee Titans;Cleveland Browns;Denver Broncos,Cincinnati Bengals
+1504.0,5,2,3,;Jacksonville Jaguars;New York Giants;Las Vegas Raiders;Washington Commanders;Philadelphia Eagles;Baltimore Ravens;Los Angeles Chargers;Pittsburgh Steelers;Denver Broncos;Kansas City Chiefs;Cincinnati Bengals,;Dallas Cowboys;Cincinnati Bengals;New Orleans Saints;Pittsburgh Steelers;Miami Dolphins,Cleveland Browns
+1606.0,8,2,6,;Cleveland Browns;Pittsburgh Steelers;San Francisco 49ers;Houston Texans;Washington Commanders;New York Giants;Carolina Panthers;Philadelphia Eagles,;New Orleans Saints;Baltimore Ravens;New York Giants;Detroit Lions;Atlanta Falcons;Philadelphia Eagles;Cincinnati Bengals;Tampa Bay Buccaneers,Dallas Cowboys
+1463.0,7,2,4,;Seattle Seahawks;Tampa Bay Buccaneers;New York Jets;Las Vegas Raiders;Baltimore Ravens;Kansas City Chiefs;Indianapolis Colts;Los Angeles Chargers;Cincinnati Bengals,;Pittsburgh Steelers;Los Angeles Chargers;New Orleans Saints;Carolina Panthers;Atlanta Falcons;Las Vegas Raiders;Cleveland Browns,Denver Broncos
+1605.0,9,3,6,;Los Angeles Rams;Arizona Cardinals;Dallas Cowboys;Houston Texans;Green Bay Packers;Buffalo Bills;Chicago Bears,;Tampa Bay Buccaneers;Seattle Seahawks;Minnesota Vikings;Tennessee Titans;Green Bay Packers;Jacksonville Jaguars;Indianapolis Colts;Chicago Bears;San Francisco 49ers,Detroit Lions
+1591.0,9,3,6,;Philadelphia Eagles;Los Angeles Rams;Jacksonville Jaguars;Detroit Lions;Miami Dolphins;Seattle Seahawks;Minnesota Vikings,;Indianapolis Colts;Tennessee Titans;Minnesota Vikings;Arizona Cardinals;Houston Texans;Chicago Bears;San Francisco 49ers;Detroit Lions;New Orleans Saints,Green Bay Packers
+1502.0,11,4,8,;Chicago Bears;Buffalo Bills;Green Bay Packers;Jacksonville Jaguars;Baltimore Ravens,;Indianapolis Colts;Minnesota Vikings;Jacksonville Jaguars;New England Patriots;Indianapolis Colts;New York Jets;Detroit Lions;Dallas Cowboys;Tennessee Titans;Miami Dolphins;Kansas City Chiefs,Houston Texans
+1449.0,5,2,4,;Houston Texans;Green Bay Packers;Miami Dolphins;Houston Texans;Minnesota Vikings;Buffalo Bills;New York Jets;Detroit Lions;New England Patriots;Tennessee Titans;New York Giants,;Chicago Bears;Pittsburgh Steelers;Jacksonville Jaguars;Tennessee Titans;Denver Broncos,Indianapolis Colts
+1481.0,8,3,6,;Miami Dolphins;Buffalo Bills;Houston Texans;Indianapolis Colts;Chicago Bears;Minnesota Vikings;Detroit Lions;Las Vegas Raiders,;Cleveland Browns;New England Patriots;Green Bay Packers;Philadelphia Eagles;Houston Texans;Tennessee Titans;New York Jets;Tennessee Titans,Jacksonville Jaguars
+1704.0,12,5,8,;Cincinnati Bengals;Atlanta Falcons;Houston Texans;Pittsburgh Steelers,;Baltimore Ravens;Los Angeles Chargers;New Orleans Saints;San Francisco 49ers;Las Vegas Raiders;Tampa Bay Buccaneers;Denver Broncos;Buffalo Bills;Carolina Panthers;Las Vegas Raiders;Los Angeles Chargers;Cleveland Browns,Kansas City Chiefs
+1501.0,5,1,4,;Los Angeles Chargers;Baltimore Ravens;Los Angeles Rams;Kansas City Chiefs;Cincinnati Bengals;Miami Dolphins;Denver Broncos;Kansas City Chiefs;Tampa Bay Buccaneers;Atlanta Falcons;New Orleans Saints,;Carolina Panthers;Cleveland Browns;Denver Broncos;Pittsburgh Steelers;Jacksonville Jaguars,Las Vegas Raiders
+1415.0,7,2,4,;Carolina Panthers;Pittsburgh Steelers;Kansas City Chiefs;Denver Broncos;Arizona Cardinals;Cincinnati Bengals;Baltimore Ravens;Kansas City Chiefs;New England Patriots,;Las Vegas Raiders;New Orleans Saints;Cleveland Browns;Tennessee Titans;Atlanta Falcons;Tampa Bay Buccaneers;Denver Broncos,Los Angeles Chargers
+1531.0,12,3,8,;Chicago Bears;Seattle Seahawks;Buffalo Bills;San Francisco 49ers,;Detroit Lions;Arizona Cardinals;San Francisco 49ers;Green Bay Packers;Las Vegas Raiders;Minnesota Vikings;Miami Dolphins;New England Patriots;Philadelphia Eagles;New Orleans Saints;New York Jets;Arizona Cardinals,Los Angeles Rams
+1554.0,10,2,6,;Buffalo Bills;New England Patriots;Buffalo Bills;Los Angeles Rams;Houston Texans;Cleveland Browns,;Jacksonville Jaguars;Seattle Seahawks;Tennessee Titans;Indianapolis Colts;Arizona Cardinals;Las Vegas Raiders;New England Patriots;Green Bay Packers;New York Jets;San Francisco 49ers,Miami Dolphins
+1475.0,8,3,6,;San Francisco 49ers;Houston Texans;Green Bay Packers;New York Jets;Detroit Lions;Los Angeles Rams;Tennessee Titans;Seattle Seahawks,;New York Giants;Indianapolis Colts;Jacksonville Jaguars;Chicago Bears;Arizona Cardinals;Atlanta Falcons;Chicago Bears;Green Bay Packers,Minnesota Vikings
+1365.0,8,2,5,;Cincinnati Bengals;New York Jets;Houston Texans;Jacksonville Jaguars;Chicago Bears;Los Angeles Rams;Miami Dolphins;Buffalo Bills,;Seattle Seahawks;San Francisco 49ers;Miami Dolphins;New York Jets;Tennessee Titans;Indianapolis Colts;Arizona Cardinals;Los Angeles Chargers,New England Patriots
+1365.0,3,1,2,;Carolina Panthers;Dallas Cowboys;Philadelphia Eagles;Kansas City Chiefs;Tampa Bay Buccaneers;Denver Broncos;Los Angeles Chargers;Carolina Panthers;Atlanta Falcons;Cleveland Browns;Los Angeles Rams;Washington Commanders;Green Bay Packers,;Atlanta Falcons;New York Giants;Las Vegas Raiders,New Orleans Saints
+1443.0,7,3,5,;Minnesota Vikings;Dallas Cowboys;Cincinnati Bengals;Philadelphia Eagles;Pittsburgh Steelers;Carolina Panthers;Tampa Bay Buccaneers;New Orleans Saints;Baltimore Ravens,;Washington Commanders;Cleveland Browns;Seattle Seahawks;Washington Commanders;Dallas Cowboys;Atlanta Falcons;Indianapolis Colts,New York Giants
+1435.0,7,1,4,;San Francisco 49ers;Buffalo Bills;Pittsburgh Steelers;New England Patriots;Houston Texans;Miami Dolphins;Jacksonville Jaguars;Los Angeles Rams;Buffalo Bills,;Tennessee Titans;New England Patriots;Denver Broncos;Minnesota Vikings;Arizona Cardinals;Indianapolis Colts;Seattle Seahawks,New York Jets
+1525.0,11,4,8,;Tampa Bay Buccaneers;Jacksonville Jaguars;Dallas Cowboys;Los Angeles Rams;Baltimore Ravens,;Green Bay Packers;Atlanta Falcons;New Orleans Saints;Cleveland Browns;New York Giants;Cincinnati Bengals;Washington Commanders;Carolina Panthers;Pittsburgh Steelers;Washington Commanders;Dallas Cowboys,Philadelphia Eagles
+1550.0,9,2,5,;Denver Broncos;Indianapolis Colts;Las Vegas Raiders;Baltimore Ravens;Cleveland Browns;Philadelphia Eagles;Baltimore Ravens,;Atlanta Falcons;Los Angeles Chargers;Dallas Cowboys;New York Jets;New York Giants;Washington Commanders;Cleveland Browns;Cincinnati Bengals;Kansas City Chiefs,Pittsburgh Steelers
+1703.0,9,4,7,;Los Angeles Rams;New England Patriots;Kansas City Chiefs;Tampa Bay Buccaneers;Green Bay Packers;Miami Dolphins;Detroit Lions,;New York Jets;Minnesota Vikings;Arizona Cardinals;Seattle Seahawks;Dallas Cowboys;Seattle Seahawks;Buffalo Bills;Chicago Bears;Los Angeles Rams,San Francisco 49ers
+1499.0,8,3,6,;New England Patriots;Miami Dolphins;Detroit Lions;New York Giants;San Francisco 49ers;Atlanta Falcons;San Francisco 49ers;New York Jets,;Denver Broncos;Buffalo Bills;Los Angeles Rams;Arizona Cardinals;Arizona Cardinals;Green Bay Packers;Minnesota Vikings;Chicago Bears,Seattle Seahawks
+1534.0,9,4,7,;Washington Commanders;Detroit Lions;Baltimore Ravens;Kansas City Chiefs;Los Angeles Chargers;Dallas Cowboys;Carolina Panthers,;Denver Broncos;Philadelphia Eagles;Atlanta Falcons;New Orleans Saints;Atlanta Falcons;San Francisco 49ers;New York Giants;Carolina Panthers;Las Vegas Raiders,Tampa Bay Buccaneers
+1406.0,2,1,1,;Chicago Bears;New York Jets;Green Bay Packers;Miami Dolphins;Indianapolis Colts;Buffalo Bills;Detroit Lions;New England Patriots;Los Angeles Chargers;Houston Texans;Washington Commanders;Jacksonville Jaguars;Cincinnati Bengals;Jacksonville Jaguars,;Minnesota Vikings;Indianapolis Colts,Tennessee Titans
+1327.0,6,1,4,;New York Giants;Cincinnati Bengals;Arizona Cardinals;Baltimore Ravens;Carolina Panthers;Chicago Bears;New York Giants;Pittsburgh Steelers;Philadelphia Eagles;Philadelphia Eagles,;Tampa Bay Buccaneers;Cleveland Browns;Dallas Cowboys;Tennessee Titans;New Orleans Saints;Atlanta Falcons,Washington Commanders
