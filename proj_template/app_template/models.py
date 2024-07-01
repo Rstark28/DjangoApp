@@ -64,6 +64,13 @@ class UpcomingGames(models.Model):
     awayScore = models.IntegerField()
     def __str__(self):
         return f"{self.date} - {self.awayTeam} @ {self.homeTeam}"
+
+class Season(models.Model):
+    team = models.ForeignKey(NFLTeam, on_delete=models.CASCADE)
+    wins = models.IntegerField()
+    playoffRound = models.charField(max_length=50)
+    seeding = models.IntegerField()
+    
     
 class Projection(models.Model):
     team = models.ForeignKey(NFLTeam, on_delete=models.CASCADE)
@@ -76,6 +83,7 @@ class Projection(models.Model):
     wonSuperBowl = models.IntegerField()
     stdv = models.FloatField()
     ptdiff = models.FloatField()
+    seasons = models.ManyToManyField(Season, related_name='projections', on_delete=models.CASCADE)
     
     
     def __str__(self):
