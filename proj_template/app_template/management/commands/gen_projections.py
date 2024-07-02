@@ -173,7 +173,7 @@ class Command(BaseCommand):
         
         
         AFCDivisionWinners = []
-        NFCDivisionWinnes = []
+        NFCDivisionWinnerSs = []
         
         def divBreakTieHelper(tied: list[str], div: list[str], df: pd.DataFrame):
             
@@ -213,12 +213,13 @@ class Command(BaseCommand):
             
             return random.choice(tied)
             
+        
+        
+        
             
             
             
-            
-            
-            
+        
                 
             
         
@@ -236,6 +237,10 @@ class Command(BaseCommand):
             div.sort(key=lambda x: -trackerDF.loc[x, 'TotWins'])
             winner = divTieBreaker(div, trackerDF)
             trackerDF.loc[winner, 'Seed'] = 1
+            if (trackerDF.loc[winner, 'Division'].split())[0] == 'AFC':
+                AFCDivisionWinners.append(winner)
+            else:
+                NFCDivisionWinners.append(winner)
             
             
                     
