@@ -107,7 +107,7 @@ class Command(BaseCommand):
                 df.loc[winner, 'TeamsBeat'] += f";{loser}"
                 
             if df.loc[loser, 'TeamsLostTo'] == '':
-                df.loc[loser, 'TeamsLostTo'] = loser
+                df.loc[loser, 'TeamsLostTo'] = winner
             else:
                 df.loc[loser, 'TeamsLostTo'] += f";{winner}"
         
@@ -432,7 +432,6 @@ class Command(BaseCommand):
                     winner = Away
                     loser = Home
                     losingSeed = HigherSeed
-                addWin(winner, loser, trackerDF)
                 adjustElo(winner, loser, homeOdds, kFactor, trackerDF)
                 trackerDF.loc[winner, 'Playoff Round'] = roundDict[round]
                 del playoffs[losingSeed]
@@ -457,7 +456,6 @@ class Command(BaseCommand):
             else:
                 winner = AFCChamp
                 loser = NFCChamp
-            addWin(winner, loser, trackerDF)
             adjustElo(winner, loser, homeOdds, kFactor, trackerDF)
             trackerDF.loc[winner, 'Playoff Round'] = "Super Bowl Champ"
                       
@@ -465,9 +463,8 @@ class Command(BaseCommand):
         simPlayoffs(AFCPlayoffs, trackerDF)
         simSuperBowl(NFCPlayoffs, AFCPlayoffs, trackerDF)
         
+        trackerDF.to_csv("test.csv", mode='w+', index=False)
         
-    
-        
-        trackerDF.to_csv("test.csv", mode='w+', index=False)  
+         
                 
         
