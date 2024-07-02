@@ -1,9 +1,5 @@
 from django.core.management.base import BaseCommand
-from app_template.models import NFLTeam
-from app_template.models import UpcomingGames
-from app_template.models import Season
-from app_template.models import Projection
-from app_template.models import City
+from app_template.models import NFLTeam, UpcomingGames, Season, Projection, City
 import pandas as pd
 import requests
 from datetime import datetime
@@ -22,6 +18,7 @@ class Command(BaseCommand):
         
         #538 Article said 20, but seems a bit small
         kFactor = 20.0
+        superBowlCity = 'New Orleans'
         teams = NFLTeam.objects.all()
         cities = City.objects.all()
         
@@ -63,12 +60,14 @@ class Command(BaseCommand):
             homeOdds = 1/(10**(-1*homeDiff/400)+1)
             return homeOdds
         
-        def getPlayoffOddsStandard(homeTeam: str, awayTeam: str, df: pd.DataFrame, homeBye: bool = False) -> float:
+        def getPlayoffOddsStandard(homeTeam: str, awayTeam: str, df: pd.DataFrame, homeBye: bool = False, isSuperBowl = True) -> float:
             awayElo = df.loc[awayTeam, 'Elo']
             homeElo = df.loc[homeTeam, 'Elo']
-            homeCityName = ' '.join((homeTeam.split(' '))[:-1])
+            if not isSuperBowl:
+                homeCityName = ' '.join((homeTeam.split(' '))[:-1])
+            else:
+                homeCityName = superBowlCity
             awayCityName = ' '.join((awayTeam.split(' '))[:-1])
-            
             homeCity = cities.get(name=homeCityName)
             awayCity = cities.get(name=awayCityName)
             homeCords = (homeCity.lat, homeCity.long)
@@ -76,7 +75,16 @@ class Command(BaseCommand):
             
             
             distanceTraveled = calculateDistance(homeCords, awayCords)
-            homeDiff = (homeElo - awayElo + 48 + distanceTraveled * 4 / 1000) 
+            homeDiff = (homeElo - awayElo + distanceTraveled * 4 / 1000) 
+            if not isSuperBowl: 
+                homeDiff += 48
+            else: 
+                homeTravelCityName = ' '.join((homeTeam.split(' '))[:-1])
+                homeTravelCity = cities.get(name=homeTravelCityName)
+                homeTravelCords = (homeTravelCity.lat, homeTravelCity.long)
+                distanceHomeTravels = calculateDistance(homeTravelCords, homeCords)
+                homeDiff -= distanceHomeTravels * 4 / 1000
+                
             if homeBye:
                 homeDiff += 25
             homeDiff *= 1.2
@@ -201,8 +209,6 @@ class Command(BaseCommand):
         NFCDivisionWinners = []
         
         def divBreakTieHelper(tied: list[str], div: list[str], df: pd.DataFrame):
-            
-            
             if len(tied) == 1:
                 return tied[0]
             
@@ -395,150 +401,71 @@ class Command(BaseCommand):
         
         #Sim WildCard
         
-        for i in range(2, 5):
-            j = 9-i
-            AFCHome = AFCPlayoffs[i]
-            AFCAway = AFCPlayoffs[j]
-            homeOdds = getPlayoffOddsStandard(AFCHome, AFCAway, trackerDF)
-            randVar = random.random()
-            if randVar < homeOdds:
-                winner = AFCHome
-                loser = AFCAway
-                losingSeed = j
+        
+        def simRound(playoffs: dict, df: pd.DataFrame, round: int, roundDict: dict) -> None:
+            if round == 0:
+                beginning = 1
+                end = 4
+            if round == 1:
+                beginning = 0
+                end = 2
             else:
-                winner = AFCAway
-                loser = AFCHome
-                losingSeed = i
-            self.stdout.write(self.style.SUCCESS(f"{AFCPlayoffs}"))
+                beginning = 0
+                end = 1
+            totalTeams = (beginning - end) * 2
+            
+            seeds = sorted(list(playoffs.keys()))
+            for i in range(beginning, end):
+                offBye = i == 0 and round == 2
+                HigherSeed = seeds[i]
+                j = -1-i
+                LowerSeed = seeds[j]
+                Home = playoffs[HigherSeed]
+                Away = playoffs[LowerSeed]
+                homeOdds = getPlayoffOddsStandard(Home, Away, trackerDF, offBye)
+                randVar = random.random()
+                if randVar < homeOdds:
+                    winner = Home
+                    loser = Away
+                    losingSeed = LowerSeed
+                else:
+                    winner = Away
+                    loser = Home
+                    losingSeed = HigherSeed
+                addWin(winner, loser, trackerDF)
+                adjustElo(winner, loser, homeOdds, kFactor, trackerDF)
+                trackerDF.loc[winner, 'Playoff Round'] = roundDict[round]
+                del playoffs[losingSeed]
+                
+            
+            
+        
+        def simPlayoffs(playoffs: dict, df: pd.DataFrame):
+            roundDict = {0: 'Divisional', 1: 'Conference', 2: 'Super Bowl'}
+            simRound(playoffs, df, 0, roundDict)
+            simRound(playoffs, df, 1, roundDict)
+            simRound(playoffs, df, 2, roundDict)
+            
+        def simSuperBowl(NFC: dict, AFC: dict, df: pd.DataFrame) -> None:
+            NFCChamp = list(NFC.values())[0]
+            AFCChamp = list(NFC.values())[0]
+            NFCOdds = getPlayoffOddsStandard(AFCChamp, NFCChamp, df, False, isSuperBowl=True)
+            randVal = random.random()
+            if randVal < NFCOdds:
+                winner = NFCChamp
+                loser = AFCChamp
+            else:
+                winner = AFCChamp
+                loser = NFCChamp
             addWin(winner, loser, trackerDF)
             adjustElo(winner, loser, homeOdds, kFactor, trackerDF)
-            trackerDF.loc[winner, 'Playoff Round'] = 'Divisional'
-            del AFCPlayoffs[losingSeed]
+            trackerDF.loc[winner, 'Playoff Round'] = "Super Bowl Champ"
+                      
+        simPlayoffs(NFCPlayoffs, trackerDF)
+        simPlayoffs(AFCPlayoffs, trackerDF)
+        simSuperBowl(NFCPlayoffs, AFCPlayoffs, trackerDF)
         
-        for i in range(2, 5):
-            j = 9-i
-            NFCHome = NFCPlayoffs[i]
-            NFCAway = NFCPlayoffs[j]
-            homeOdds = getPlayoffOddsStandard(NFCHome, NFCAway, trackerDF)
-            randVar = random.random()
-            if randVar < homeOdds:
-                winner = NFCHome
-                loser = NFCAway
-                losingSeed = j
-            else:
-                winner = NFCHome
-                loser = NFCAway
-                losingSeed = i
-            self.stdout.write(self.style.SUCCESS(f"{NFCPlayoffs}"))
-            addWin(winner, loser, trackerDF)
-            adjustElo(winner, loser, homeOdds, kFactor, trackerDF)
-            trackerDF.loc[winner, 'Playoff Round'] = 'Divisional'
-            del NFCPlayoffs[losingSeed]
-            
-        #Sim Divisional
         
-        for i in range(2):
-            offBye = False
-            remainingSeeds = list(AFCPlayoffs.keys())
-            remainingSeeds.sort()
-            higherSeed = remainingSeeds[i]
-            if higherSeed == 1:
-                offBye = True
-            j = -1 - i
-            lowerSeed = remainingSeeds[j]
-            
-            
-            AFCHome = AFCPlayoffs[higherSeed]
-            AFCAway = AFCPlayoffs[lowerSeed]
-            homeOdds = getPlayoffOddsStandard(AFCHome, AFCAway, trackerDF, homeBye=offBye)
-            randVar = random.random()
-            if randVar < homeOdds:
-                winner = AFCHome
-                loser = AFCAway
-                losingSeed = lowerSeed
-            else:
-                winner = AFCAway
-                loser = AFCHome
-                losingSeed = higherSeed
-            self.stdout.write(self.style.SUCCESS(f"{AFCPlayoffs}"))
-            addWin(winner, loser, trackerDF)
-            adjustElo(winner, loser, homeOdds, kFactor, trackerDF)
-            trackerDF.loc[winner, 'Playoff Round'] = 'Conference'
-            del AFCPlayoffs[losingSeed]
-            
-            remainingSeeds = list(NFCPlayoffs.keys())
-            remainingSeeds.sort()
-            higherSeed = remainingSeeds[i]
-            lowerSeed = remainingSeeds[j]
-            
-            
-            NFCHome = NFCPlayoffs[higherSeed]
-            NFCAway = NFCPlayoffs[lowerSeed]
-            homeOdds = getPlayoffOddsStandard(NFCHome, NFCAway, trackerDF, homeBye=offBye)
-            randVar = random.random()
-            if randVar < homeOdds:
-                winner = NFCHome
-                loser = NFCAway
-                losingSeed = lowerSeed
-            else:
-                winner = NFCAway
-                loser = NFCHome
-                losingSeed = higherSeed
-            self.stdout.write(self.style.SUCCESS(f"{NFCPlayoffs}"))
-            addWin(winner, loser, trackerDF)
-            adjustElo(winner, loser, homeOdds, kFactor, trackerDF)
-            trackerDF.loc[winner, 'Playoff Round'] = 'Conference'
-            del NFCPlayoffs[losingSeed]
-            
-            
-        remainingAFC = sorted(list(AFCPlayoffs.keys()))
-        remainingNFC = sorted(list(NFCPlayoffs.keys()))   
-        
-        AFCHigher= remainingAFC[0]
-        AFCLower = remainingAFC[1] 
-        
-        AFCHome = AFCPlayoffs[AFCHigher]
-        AFCAway = AFCPlayoffs[AFCLower]
-        homeOdds = getPlayoffOddsStandard(AFCHome, AFCAway, trackerDF, homeBye=offBye)
-        randVar = random.random()
-        if randVar < homeOdds:
-            winner = AFCHome
-            loser = AFCAway
-            losingSeed = AFCLower
-        else:
-            winner = AFCAway
-            loser = AFCHome
-            losingSeed = AFCHigher
-        addWin(winner, loser, trackerDF)
-        adjustElo(winner, loser, homeOdds, kFactor, trackerDF)
-        trackerDF.loc[winner, 'Playoff Round'] = 'SuperBowl'
-        del AFCPlayoffs[losingSeed]
-
-        NFCHigher= remainingNFC[0]
-        NFCLower = remainingNFC[1] 
-        
-        NFCHome = NFCPlayoffs[NFCHigher]
-        NFCAway = NFCPlayoffs[NFCLower]
-        homeOdds = getPlayoffOddsStandard(NFCHome, NFCAway, trackerDF, homeBye=offBye)
-        randVar = random.random()
-        if randVar < homeOdds:
-            winner = NFCHome
-            loser = NFCAway
-            losingSeed = NFCLower
-        else:
-            winner = NFCAway
-            loser = NFCHome
-            losingSeed = NFCHigher
-        addWin(winner, loser, trackerDF)
-        adjustElo(winner, loser, homeOdds, kFactor, trackerDF)
-        trackerDF.loc[winner, 'Playoff Round'] = 'SuperBowl'
-        del NFCPlayoffs[losingSeed]
-        
-    
-        
-            
-        
-    
     
         
         trackerDF.to_csv("test.csv", mode='w+', index=False)  
