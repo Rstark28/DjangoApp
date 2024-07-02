@@ -63,6 +63,26 @@ class Command(BaseCommand):
             homeOdds = 1/(10**(-1*homeDiff/400)+1)
             return homeOdds
         
+        def getPlayoffOddsStandard(homeTeam: str, awayTeam: str, df: pd.DataFrame, homeBye: bool = False) -> float:
+            awayElo = df.loc[awayTeam, 'Elo']
+            homeElo = df.loc[homeTeam, 'Elo']
+            homeCityName = ' '.join((homeTeam.split(' '))[:-1])
+            awayCityName = ' '.join((awayTeam.split(' '))[:-1])
+            
+            homeCity = cities.get(name=homeCityName)
+            awayCity = cities.get(name=awayCityName)
+            homeCords = (homeCity.lat, homeCity.long)
+            awayCords = (awayCity.lat, awayCity.long)
+            
+            
+            distanceTraveled = calculateDistance(homeCords, awayCords)
+            homeDiff = (homeElo - awayElo + 48 + distanceTraveled * 4 / 1000) 
+            if homeBye:
+                homeDiff += 25
+            homeDiff *= 1.2
+            homeOdds = 1/(10**(-1*homeDiff/400)+1)
+            return homeOdds
+        
         def addWin(winner: str, loser: str, df: pd.DataFrame):
             df.loc[winner, 'TotWins'] +=  1 
             winnerDiv = df.loc[winner, 'Division']
@@ -321,6 +341,8 @@ class Command(BaseCommand):
                 shift = 1
             for i, team in enumerate(newList):
                 df.loc[team, 'Seed'] = i +shift
+            
+            return newList
                 
          
         for div in AllDivisions:
@@ -347,17 +369,178 @@ class Command(BaseCommand):
         
         AFCPlayoffs = dict()
         NFCPlayoffs = dict()
-        for i, team in AFCDivisionWinners.enumerate():
+        for i, team in enumerate(AFCDivisionWinners):
             AFCPlayoffs[i+1] = team
-        for i, team in AFCWildcard.enumurate():
+        for i, team in enumerate(AFCWildcard):
             AFCPlayoffs[i+5] = team
-        for i, team in NFCDivisionWinners.enumerate():
+        for i, team in enumerate(NFCDivisionWinners):
             NFCPlayoffs[i+1] = team
-        for i, team in NFCWildcard.enumurate():
+        for i, team in enumerate(NFCWildcard):
             NFCPlayoffs[i+5] = team
             
+
+        for seed in AFCPlayoffs:
+            team = AFCPlayoffs[seed]
+            if seed == 1:
+                trackerDF.loc[team, 'Playoff Round'] = 'Divisional'
+            else:
+                trackerDF.loc[team, 'Playoff Round'] = 'Wildcard'
         
-                    
+        for seed in NFCPlayoffs:
+            team = NFCPlayoffs[seed]
+            if seed == 1:
+                trackerDF.loc[team, 'Playoff Round'] = 'Divisional'
+            else:
+                trackerDF.loc[team, 'Playoff Round'] = 'Wildcard'
+        
+        #Sim WildCard
+        
+        for i in range(2, 5):
+            j = 9-i
+            AFCHome = AFCPlayoffs[i]
+            AFCAway = AFCPlayoffs[j]
+            homeOdds = getPlayoffOddsStandard(AFCHome, AFCAway, trackerDF)
+            randVar = random.random()
+            if randVar < homeOdds:
+                winner = AFCHome
+                loser = AFCAway
+                losingSeed = j
+            else:
+                winner = AFCAway
+                loser = AFCHome
+                losingSeed = i
+            self.stdout.write(self.style.SUCCESS(f"{AFCPlayoffs}"))
+            addWin(winner, loser, trackerDF)
+            adjustElo(winner, loser, homeOdds, kFactor, trackerDF)
+            trackerDF.loc[winner, 'Playoff Round'] = 'Divisional'
+            del AFCPlayoffs[losingSeed]
+        
+        for i in range(2, 5):
+            j = 9-i
+            NFCHome = NFCPlayoffs[i]
+            NFCAway = NFCPlayoffs[j]
+            homeOdds = getPlayoffOddsStandard(NFCHome, NFCAway, trackerDF)
+            randVar = random.random()
+            if randVar < homeOdds:
+                winner = NFCHome
+                loser = NFCAway
+                losingSeed = j
+            else:
+                winner = NFCHome
+                loser = NFCAway
+                losingSeed = i
+            self.stdout.write(self.style.SUCCESS(f"{NFCPlayoffs}"))
+            addWin(winner, loser, trackerDF)
+            adjustElo(winner, loser, homeOdds, kFactor, trackerDF)
+            trackerDF.loc[winner, 'Playoff Round'] = 'Divisional'
+            del NFCPlayoffs[losingSeed]
+            
+        #Sim Divisional
+        
+        for i in range(2):
+            offBye = False
+            remainingSeeds = list(AFCPlayoffs.keys())
+            remainingSeeds.sort()
+            higherSeed = remainingSeeds[i]
+            if higherSeed == 1:
+                offBye = True
+            j = -1 - i
+            lowerSeed = remainingSeeds[j]
+            
+            
+            AFCHome = AFCPlayoffs[higherSeed]
+            AFCAway = AFCPlayoffs[lowerSeed]
+            homeOdds = getPlayoffOddsStandard(AFCHome, AFCAway, trackerDF, homeBye=offBye)
+            randVar = random.random()
+            if randVar < homeOdds:
+                winner = AFCHome
+                loser = AFCAway
+                losingSeed = lowerSeed
+            else:
+                winner = AFCAway
+                loser = AFCHome
+                losingSeed = higherSeed
+            self.stdout.write(self.style.SUCCESS(f"{AFCPlayoffs}"))
+            addWin(winner, loser, trackerDF)
+            adjustElo(winner, loser, homeOdds, kFactor, trackerDF)
+            trackerDF.loc[winner, 'Playoff Round'] = 'Conference'
+            del AFCPlayoffs[losingSeed]
+            
+            remainingSeeds = list(NFCPlayoffs.keys())
+            remainingSeeds.sort()
+            higherSeed = remainingSeeds[i]
+            lowerSeed = remainingSeeds[j]
+            
+            
+            NFCHome = NFCPlayoffs[higherSeed]
+            NFCAway = NFCPlayoffs[lowerSeed]
+            homeOdds = getPlayoffOddsStandard(NFCHome, NFCAway, trackerDF, homeBye=offBye)
+            randVar = random.random()
+            if randVar < homeOdds:
+                winner = NFCHome
+                loser = NFCAway
+                losingSeed = lowerSeed
+            else:
+                winner = NFCAway
+                loser = NFCHome
+                losingSeed = higherSeed
+            self.stdout.write(self.style.SUCCESS(f"{NFCPlayoffs}"))
+            addWin(winner, loser, trackerDF)
+            adjustElo(winner, loser, homeOdds, kFactor, trackerDF)
+            trackerDF.loc[winner, 'Playoff Round'] = 'Conference'
+            del NFCPlayoffs[losingSeed]
+            
+            
+        remainingAFC = sorted(list(AFCPlayoffs.keys()))
+        remainingNFC = sorted(list(NFCPlayoffs.keys()))   
+        
+        AFCHigher= remainingAFC[0]
+        AFCLower = remainingAFC[1] 
+        
+        AFCHome = AFCPlayoffs[AFCHigher]
+        AFCAway = AFCPlayoffs[AFCLower]
+        homeOdds = getPlayoffOddsStandard(AFCHome, AFCAway, trackerDF, homeBye=offBye)
+        randVar = random.random()
+        if randVar < homeOdds:
+            winner = AFCHome
+            loser = AFCAway
+            losingSeed = AFCLower
+        else:
+            winner = AFCAway
+            loser = AFCHome
+            losingSeed = AFCHigher
+        addWin(winner, loser, trackerDF)
+        adjustElo(winner, loser, homeOdds, kFactor, trackerDF)
+        trackerDF.loc[winner, 'Playoff Round'] = 'SuperBowl'
+        del AFCPlayoffs[losingSeed]
+
+        NFCHigher= remainingNFC[0]
+        NFCLower = remainingNFC[1] 
+        
+        NFCHome = NFCPlayoffs[NFCHigher]
+        NFCAway = NFCPlayoffs[NFCLower]
+        homeOdds = getPlayoffOddsStandard(NFCHome, NFCAway, trackerDF, homeBye=offBye)
+        randVar = random.random()
+        if randVar < homeOdds:
+            winner = NFCHome
+            loser = NFCAway
+            losingSeed = NFCLower
+        else:
+            winner = NFCAway
+            loser = NFCHome
+            losingSeed = NFCHigher
+        addWin(winner, loser, trackerDF)
+        adjustElo(winner, loser, homeOdds, kFactor, trackerDF)
+        trackerDF.loc[winner, 'Playoff Round'] = 'SuperBowl'
+        del NFCPlayoffs[losingSeed]
+        
+    
+        
+            
+        
+    
+    
+        
         trackerDF.to_csv("test.csv", mode='w+', index=False)  
                 
         
