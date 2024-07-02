@@ -170,10 +170,11 @@ class Command(BaseCommand):
         
         AllDivisions = [AFCEast, AFCWest, AFCNorth, AFCSouth, NFCEast, NFCWest, NFCSouth, NFCNorth]
         
-        
+        AFC = AFCNorth + AFCEast + AFCWest + AFCSouth
+        NFC = NFCNorth + NFCEast + NFCWest + NFCSouth
         
         AFCDivisionWinners = []
-        NFCDivisionWinnerSs = []
+        NFCDivisionWinners = []
         
         def divBreakTieHelper(tied: list[str], div: list[str], df: pd.DataFrame):
             
@@ -242,7 +243,8 @@ class Command(BaseCommand):
             else:
                 NFCDivisionWinners.append(winner)
             
-            
+        AFCWildcard = list(set(AFC) - set(AFCDivisionWinners))
+        NFCWildcard = list(set(NFC) - set(NFCDivisionWinners))
                     
         trackerDF.to_csv("test.csv", mode='w+', index=False)  
                 
