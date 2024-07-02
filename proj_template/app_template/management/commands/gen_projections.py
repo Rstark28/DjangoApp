@@ -20,7 +20,7 @@ class Command(BaseCommand):
         
     def handle(self, *args, **kwargs):
         
-        
+        #538 Article said 20, but seems a bit small
         kFactor = 20.0
         teams = NFLTeam.objects.all()
         cities = City.objects.all()
@@ -28,7 +28,8 @@ class Command(BaseCommand):
         def calculateDistance(city1: float, city2: float) -> float:
             return geodesic(city1, city2).miles
         
-        
+        #Note: This is non-QB Adjusted, I plan to add a QB-Adjusted model and try 
+        #And create another model that takes other positions into account
         def getHomeOddsStandard(Game: UpcomingGames, df: pd.DataFrame) -> float:
             cities = City.objects.all()
             awayTeam = Game.awayTeam
@@ -46,7 +47,7 @@ class Command(BaseCommand):
             gameCords = (gameCity.lat,  gameCity.long)
             homeCords = (homeCity.lat, homeCity.long)
             awayCords = (awayCity.lat, awayCity.long)
-            
+        
             homeDistance = calculateDistance(gameCords, homeCords)
             awayDistance = calculateDistance(gameCords, awayCords)
             
@@ -61,6 +62,7 @@ class Command(BaseCommand):
             homeDiff += awayDistance * 4 / 1000
             homeOdds = 1/(10**(-1*homeDiff/400)+1)
             return homeOdds
+        
         def addWin(winner: str, loser: str, df: pd.DataFrame):
             df.loc[winner, 'TotWins'] +=  1 
             winnerDiv = df.loc[winner, 'Division']
@@ -80,7 +82,8 @@ class Command(BaseCommand):
                 df.loc[loser, 'TeamsLostTo'] = loser
             else:
                 df.loc[loser, 'TeamsLostTo'] += f";{winner}"
-            
+        
+        #Does not take point differential into account yet    
         def adjustElo(winner: str, loser: str, winnerOdds: float, kFactor: float, df: pd.DataFrame):
             proportion = 1 - winnerOdds
             change = proportion * kFactor
@@ -149,6 +152,7 @@ class Command(BaseCommand):
                 awayTeam = game.awayTeam
                 homeTeamName = homeTeam.team_name
                 awayTeamName = awayTeam.team_name
+                #Potentially add point differential as well
                 homeOdds = getHomeOddsStandard(game, trackerDF)
                 randNumber = random.random()
                 if randNumber < homeOdds:
@@ -178,11 +182,13 @@ class Command(BaseCommand):
         
         def divBreakTieHelper(tied: list[str], div: list[str], df: pd.DataFrame):
             
+            
             if len(tied) == 1:
                 return tied[0]
             
             tiedOrig = len(tied)
             
+            #H2H Tie Breaker
             commonScore = {team: 0 for team in tied}
             for i in range(len(tied)):
                 team = tied[i]
@@ -200,18 +206,22 @@ class Command(BaseCommand):
             if tiedOrig > len(tied):
                 return divBreakTieHelper(tied, div, df)
             
+            #Divisional Tie Breaker
             tied.sort(key = lambda x: -df.loc[x, 'DivWins'])
             highest = tied[0]
             tied = [team for team in tied if commonScore[team] == commonScore[highest]]
             if tiedOrig > len(tied):
                 return divBreakTieHelper(tied, div, df)
             
+            #Conference Tie Breaker
             tied.sort(key = lambda x: -df.loc[x, 'ConfWins'])
             highest = tied[0]
             tied = [team for team in tied if commonScore[team] == commonScore[highest]]
             if tiedOrig > len(tied):
                 return divBreakTieHelper(tied, div, df)
             
+            #Random at this point. Unlikely to affect projections early on, and plan 
+            #To add other tie breakers later on
             return random.choice(tied)
             
         
@@ -232,6 +242,85 @@ class Command(BaseCommand):
                     tiedForFirst.append(team)
             winner = divBreakTieHelper(tiedForFirst, div, df)
             return winner
+        
+        
+        def findTies(teams: list[str], isWildCard: bool, df: pd.DataFrame, key) -> list[list[str]]:
+            res = []
+            currTieList = [teams[0]]
+            currWins = key(teams[0])
+            for i in range(1, len(teams)):
+                team = teams[i]
+                if key(team) == currWins:
+                    currTieList.append(team)
+                else:
+                    res.append(currTieList)
+                    #Not tracking seeding if not in playoffs
+                    if (i >= 3) and isWildCard: 
+                        self.stdout.write(self.style.SUCCESS(f'{res}'))
+                        return res
+                    currWins = key(team)
+                    currTieList = [team]
+            res.append(currTieList)
+            self.stdout.write(self.style.SUCCESS(f'{res}'))
+            return res
+                
+        def resolveTies(tie: list[str], df: pd.DataFrame) -> list[str]:
+            ogLen = len(tie)
+            if ogLen == 1:
+                return tie
+            sweptIndex = -1
+            sweeperIndex = -1
+            for i in range(len(tie)):
+                team = tie[i]
+                teamsBeat = df.loc[team, 'TeamsBeat'].split(';')
+                teamsLost = df.loc[team, 'TeamsLostTo'].split(';')
+                otherTeams = tie[:i] + tie[i+1:]
+                swept = True
+                wasSwept = True
+                
+                for otherTeam in otherTeams:
+                    if otherTeam not in teamsBeat or otherTeam in teamsLost:
+                        swept = False
+                    if otherTeam in teamsBeat or otherTeam not in teamsLost:
+                        swept = True
+                
+                if swept:
+                    sweeperIndex = i
+                if wasSwept:
+                    sweptIndex = i
+            if sweeperIndex != -1 and sweptIndex != -1:
+                return [team[sweeperIndex]] + [team for i, team in enumerate(tie) if i not in {sweeperIndex, sweptIndex}] + [team[sweptIndex]]
+            if sweeperIndex != -1:
+                return [team[sweeperIndex]] + [team for i, team in enumerate(tie) if i == sweeperIndex]
+            if sweptIndex != -1:
+                return [team for i, team in enumerate(tie) if i == sweptIndex] + [team[sweptIndex]]
+            
+            tie.sort(key = lambda x: -df.loc[x, 'ConfWins'])
+            
+            newTies = findTies(tie, False, df, lambda x: df.loc[x, 'ConfWins'])
+            if len(newTies) == 1:
+                return random.sample(newTies[0], len(newTies[0]))
+            res = []
+            for tie in newTies:
+                res += resolveTies(tie)
+            return res
+                  
+                    
+        #Assumes List is already sorted by total wins     
+        def seed(teams: list[str], df: pd.DataFrame, isWildCard: bool) -> list[str]:
+            tieList = findTies(teams, isWildCard, df, lambda x: df.loc[x, 'TotWins'])
+            newList = []
+            for tie in tieList:
+                tie = resolveTies(tie, df)
+            for tie in tieList:
+                newList += tie
+                
+            if isWildCard:
+                shift = 5
+            else:
+                shift = 1
+            for i, team in enumerate(newList):
+                df.loc[team, 'Seed'] = i +shift
                 
          
         for div in AllDivisions:
@@ -245,6 +334,29 @@ class Command(BaseCommand):
             
         AFCWildcard = list(set(AFC) - set(AFCDivisionWinners))
         NFCWildcard = list(set(NFC) - set(NFCDivisionWinners))
+        
+        AFCWildcard.sort(key = lambda x: -trackerDF.loc[x, 'TotWins'])
+        NFCWildcard.sort(key = lambda x: -trackerDF.loc[x, 'TotWins'])
+        AFCDivisionWinners.sort(key = lambda x: -trackerDF.loc[x, 'TotWins'])
+        NFCDivisionWinners.sort(key = lambda x: -trackerDF.loc[x, 'TotWins'])
+        
+        AFCWildcard = seed(AFCWildcard, trackerDF, True)[:3]
+        NFCWildcard = seed(NFCWildcard, trackerDF, True)[:3]
+        AFCDivisionWinners = seed(AFCDivisionWinners, trackerDF, False)
+        NFCDivisionWinners = seed(NFCDivisionWinners, trackerDF, False)
+        
+        AFCPlayoffs = dict()
+        NFCPlayoffs = dict()
+        for i, team in AFCDivisionWinners.enumerate():
+            AFCPlayoffs[i+1] = team
+        for i, team in AFCWildcard.enumurate():
+            AFCPlayoffs[i+5] = team
+        for i, team in NFCDivisionWinners.enumerate():
+            NFCPlayoffs[i+1] = team
+        for i, team in NFCWildcard.enumurate():
+            NFCPlayoffs[i+5] = team
+            
+        
                     
         trackerDF.to_csv("test.csv", mode='w+', index=False)  
                 
