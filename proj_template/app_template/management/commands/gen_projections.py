@@ -286,7 +286,7 @@ class Command(BaseCommand):
         
     def simSuperBowl(self, NFC: dict, AFC: dict, df: pd.DataFrame) -> None:
         NFCChamp = list(NFC.values())[0]
-        AFCChamp = list(NFC.values())[0]
+        AFCChamp = list(AFC.values())[0]
         NFCOdds = self.getPlayoffOddsStandard(AFCChamp, NFCChamp, df, False, isSuperBowl=True)
         randVal = random.random()
         if randVal < NFCOdds:
@@ -297,6 +297,7 @@ class Command(BaseCommand):
             loser = NFCChamp
         self.adjustElo(winner, loser, NFCOdds, self.kFactor, df)
         df.loc[winner, 'Playoff Round'] = "Super Bowl Champ"
+        return winner
         
     def adjustElo(self, winner: str, loser: str, winnerOdds: float, kFactor: float, df: pd.DataFrame):
         proportion = 1 - winnerOdds
@@ -307,6 +308,8 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         
         
+        
+        
         num = kwargs['num']
         #538 Article said 20, but seems a bit small
         self.kFactor = 20.0
@@ -314,7 +317,10 @@ class Command(BaseCommand):
         self.teams = NFLTeam.objects.all()
         self.cities = City.objects.all()
         
-        
+        resultsDF = pd.DataFrame(columns=['Team', 'SuperBowl', 'DivChamps', '1Seed', 'Mean', 'Median', '25', '75', 'stdev'])
+        for team in self.teams:
+            resultsDF.loc[team.team_name] = [team.team_name, float(0), float(0), float(0), float(0), float(0), float(0), float(0), float(0)]
+        resultDict = {team.team_name: [] for team in self.teams}
         
 
         
@@ -362,7 +368,7 @@ class Command(BaseCommand):
         
         
         for i in range(num):
-            if i % 100:
+            if (i % 100) == 0:
                 self.stdout.write(self.style.SUCCESS(f"Successfully simulated {i} times"))  
             trackerDF = pd.DataFrame(columns=['Team', 'Elo', 'TotWins', 'DivWins', 'ConfWins', 'TeamsLostTo', 'TeamsBeat'])
             trackerDF.set_index('Team', inplace=True)
@@ -378,7 +384,6 @@ class Command(BaseCommand):
                 trackerDF.loc[name, 'Division'] = divisionDict[name]
                 trackerDF.loc[name, 'Seed'] = -1
                 trackerDF.loc[name, 'Playoff Round'] = 'None'
-            
             
             games = UpcomingGames.objects.all().filter(isComplete=False)
             for i in range(1, 18):
@@ -466,10 +471,27 @@ class Command(BaseCommand):
                     trackerDF.loc[team, 'Playoff Round'] = 'Wildcard'
             
             #Sim WildCard
-            
             self.simPlayoffs(NFCPlayoffs, trackerDF)
             self.simPlayoffs(AFCPlayoffs, trackerDF)
-            self.simSuperBowl(NFCPlayoffs, AFCPlayoffs, trackerDF)
+            champs = self.simSuperBowl(NFCPlayoffs, AFCPlayoffs, trackerDF)
+            resultsDF.loc[champs, 'SuperBowl'] += 1
+            
+            for team in self.teams:
+                teamName = team.team_name
+                if trackerDF.loc[teamName, 'Seed'] <= 4 and trackerDF.loc[teamName, 'Seed'] != -1:
+                    resultsDF.loc[teamName, 'DivChamps'] += 1
+                if trackerDF.loc[teamName, 'Seed'] == 1:
+                    resultsDF.loc[teamName, '1Seed'] += 1
+                resultDict[teamName].append(trackerDF.loc[teamName, 'TotWins'])
+        for team in resultDict:
+            resultsDF.loc[team, 'Mean'] = np.mean(resultDict[team])
+            resultsDF.loc[team, 'Median'] = np.median(resultDict[team])
+            resultsDF.loc[team, '25'] = np.percentile(resultDict[team], 25)
+            resultsDF.loc[team, '75'] = np.percentile(resultDict[team], 75)
+            resultsDF.loc[team, 'stdev'] = np.std(resultDict[team])
+        resultsDF.to_csv('test2.csv', mode='w+', index=False)
+                
+                
         
         
          
