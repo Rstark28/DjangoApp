@@ -1,3 +1,4 @@
+from io import StringIO
 from django.core.management.base import BaseCommand
 from app_template.models import NFLTeam, UpcomingGames, Season, Projection, City
 import pandas as pd
@@ -11,14 +12,58 @@ import random
 from geopy.distance import geodesic
 
 class Command(BaseCommand):
+    
     help = 'Updates/Generates the projections'
+
+    def __init__(self):
+
+        self.kFactor = 20.0
+        self.superBowlCity = 'New Orleans'
+        self.teams = NFLTeam.objects.all()
+        self.cities = City.objects.all()
+
+        self.divisionDict = {
+            "Buffalo Bills": "AFC East",
+            "Miami Dolphins": "AFC East",
+            "New England Patriots": "AFC East",
+            "New York Jets": "AFC East",
+            "Baltimore Ravens": "AFC North",
+            "Cincinnati Bengals": "AFC North",
+            "Cleveland Browns": "AFC North",
+            "Pittsburgh Steelers": "AFC North",
+            "Houston Texans": "AFC South",
+            "Indianapolis Colts": "AFC South",
+            "Jacksonville Jaguars": "AFC South",
+            "Tennessee Titans": "AFC South",
+            "Denver Broncos": "AFC West",
+            "Kansas City Chiefs": "AFC West",
+            "Las Vegas Raiders": "AFC West",
+            "Los Angeles Chargers": "AFC West",
+            "Dallas Cowboys": "NFC East",
+            "New York Giants": "NFC East",
+            "Philadelphia Eagles": "NFC East",
+            "Washington Commanders": "NFC East",
+            "Chicago Bears": "NFC North",
+            "Detroit Lions": "NFC North",
+            "Green Bay Packers": "NFC North",
+            "Minnesota Vikings": "NFC North",
+            "Atlanta Falcons": "NFC South",
+            "Carolina Panthers": "NFC South",
+            "New Orleans Saints": "NFC South",
+            "Tampa Bay Buccaneers": "NFC South",
+            "Arizona Cardinals": "NFC West",
+            "Los Angeles Rams": "NFC West",
+            "San Francisco 49ers": "NFC West",
+            "Seattle Seahawks": "NFC West"
+        }  
+        
     
     def add_arguments(self, parser):
         parser.add_argument(
             '-n', '--num',
             type=int,
             help='Number of Simulations',
-            default='10000'
+            default='10'
         )
 
     def calculateDistance(self, city1: float, city2: float) -> float:
@@ -241,6 +286,7 @@ class Command(BaseCommand):
             df.loc[team, 'Seed'] = i +shift
         
         return newList 
+    
     def simRound(self, playoffs: dict, df: pd.DataFrame, round: int, roundDict: dict) -> None:
         if round == 0:
             beginning = 1
@@ -307,69 +353,20 @@ class Command(BaseCommand):
                         
     def handle(self, *args, **kwargs):
         
-        
-        
-        
         num = kwargs['num']
-        #538 Article said 20, but seems a bit small
-        self.kFactor = 20.0
-        self.superBowlCity = 'New Orleans'
-        self.teams = NFLTeam.objects.all()
-        self.cities = City.objects.all()
         
         resultsDF = pd.DataFrame(columns=['Team', 'SuperBowl', 'DivChamps', '1Seed', 'Mean', 'Median', '25', '75', 'stdev'])
+
         for team in self.teams:
-            resultsDF.loc[team.team_name] = [team.team_name, float(0), float(0), float(0), float(0), float(0), float(0), float(0), float(0)]
-        resultDict = {team.team_name: [] for team in self.teams}
+            resultsDF.loc[team.team_name] = [team.team_name, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         
-
-        
-        
-        
-        
-        
-        #Does not take point differential into account yet    
-
-            
-        divisionDict = {
-            "Buffalo Bills": "AFC East",
-            "Miami Dolphins": "AFC East",
-            "New England Patriots": "AFC East",
-            "New York Jets": "AFC East",
-            "Baltimore Ravens": "AFC North",
-            "Cincinnati Bengals": "AFC North",
-            "Cleveland Browns": "AFC North",
-            "Pittsburgh Steelers": "AFC North",
-            "Houston Texans": "AFC South",
-            "Indianapolis Colts": "AFC South",
-            "Jacksonville Jaguars": "AFC South",
-            "Tennessee Titans": "AFC South",
-            "Denver Broncos": "AFC West",
-            "Kansas City Chiefs": "AFC West",
-            "Las Vegas Raiders": "AFC West",
-            "Los Angeles Chargers": "AFC West",
-            "Dallas Cowboys": "NFC East",
-            "New York Giants": "NFC East",
-            "Philadelphia Eagles": "NFC East",
-            "Washington Commanders": "NFC East",
-            "Chicago Bears": "NFC North",
-            "Detroit Lions": "NFC North",
-            "Green Bay Packers": "NFC North",
-            "Minnesota Vikings": "NFC North",
-            "Atlanta Falcons": "NFC South",
-            "Carolina Panthers": "NFC South",
-            "New Orleans Saints": "NFC South",
-            "Tampa Bay Buccaneers": "NFC South",
-            "Arizona Cardinals": "NFC West",
-            "Los Angeles Rams": "NFC West",
-            "San Francisco 49ers": "NFC West",
-            "Seattle Seahawks": "NFC West"
-        }   
-        
+        resultDict = {team.team_name: [] for team in self.teams} 
         
         for i in range(num):
-            if (i % 100) == 0:
-                self.stdout.write(self.style.SUCCESS(f"Successfully simulated {i} times"))  
+
+            # if (i % 10) == 0:
+            #     self.stdout.write(self.style.SUCCESS(f"Successfully simulated {i} times"))
+
             trackerDF = pd.DataFrame(columns=['Team', 'Elo', 'TotWins', 'DivWins', 'ConfWins', 'TeamsLostTo', 'TeamsBeat'])
             trackerDF.set_index('Team', inplace=True)
             for team in self.teams:
@@ -381,7 +378,7 @@ class Command(BaseCommand):
                 trackerDF.loc[name, 'DivWins'] = team.divWins
                 trackerDF.loc[name, 'TeamsLostTo'] = ''
                 trackerDF.loc[name, 'TeamsBeat'] = ''
-                trackerDF.loc[name, 'Division'] = divisionDict[name]
+                trackerDF.loc[name, 'Division'] = self.divisionDict[name]
                 trackerDF.loc[name, 'Seed'] = -1
                 trackerDF.loc[name, 'Playoff Round'] = 'None'
             
