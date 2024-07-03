@@ -59,11 +59,12 @@ class Command(BaseCommand):
         
     
     def add_arguments(self, parser):
+
         parser.add_argument(
             '-n', '--num',
-            type=int,
-            help='Number of Simulations',
-            default='10'
+            type = int,
+            help = 'Number of Simulations',
+            default = '3'
         )
 
     def calculateDistance(self, city1: float, city2: float) -> float:
@@ -352,21 +353,22 @@ class Command(BaseCommand):
         df.loc[loser, 'Elo'] -= change
                         
     def handle(self, *args, **kwargs):
-        
+
+        # Number of simulations to run
         num = kwargs['num']
-        
+
+        # Create a DataFrame to store results with specified columns
         resultsDF = pd.DataFrame(columns=['Team', 'SuperBowl', 'DivChamps', '1Seed', 'Mean', 'Median', '25', '75', 'stdev'])
 
+        # Initialize results DataFrame with team names and zero values
         for team in self.teams:
             resultsDF.loc[team.team_name] = [team.team_name, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-        
+
+        # Initialize a dictionary to store results for each team
         resultDict = {team.team_name: [] for team in self.teams} 
-        
-        for i in range(num):
 
-            # if (i % 10) == 0:
-            #     self.stdout.write(self.style.SUCCESS(f"Successfully simulated {i} times"))
-
+        for i in range(num):           
+            # Initialize a DataFrame to track the current state of the simulation
             trackerDF = pd.DataFrame(columns=['Team', 'Elo', 'TotWins', 'DivWins', 'ConfWins', 'TeamsLostTo', 'TeamsBeat'])
             trackerDF.set_index('Team', inplace=True)
             for team in self.teams:
@@ -381,25 +383,30 @@ class Command(BaseCommand):
                 trackerDF.loc[name, 'Division'] = self.divisionDict[name]
                 trackerDF.loc[name, 'Seed'] = -1
                 trackerDF.loc[name, 'Playoff Round'] = 'None'
-            
+
+            # Get the list of upcoming games that are not yet complete
             games = UpcomingGames.objects.all().filter(isComplete=False)
+            
+            # Simulate each week of games
             for i in range(1, 18):
                 weeklyGames = games.filter(week=i)
+                
                 for game in weeklyGames:
                     homeTeam = game.homeTeam
                     awayTeam = game.awayTeam
-                    homeTeamName = homeTeam.team_name
-                    awayTeamName = awayTeam.team_name
-                    #Potentially add point differential as well
+
+                    # Calculate home team odds of winning
                     homeOdds = self.getHomeOddsStandard(game, trackerDF)
                     randNumber = random.random()
+
                     if randNumber < homeOdds:
-                        self.addWin(homeTeamName, awayTeamName, trackerDF)
-                        self.adjustElo(homeTeamName, awayTeamName, homeOdds, self.kFactor, trackerDF)
+                        self.addWin(homeTeam.team_name, awayTeam.team_name, trackerDF)
+                        self.adjustElo(homeTeam.team_name, awayTeam.team_name, homeOdds, self.kFactor, trackerDF)
                     else:
-                        self.addWin(awayTeamName, homeTeamName, trackerDF)
-                        self.adjustElo(awayTeamName, homeTeamName, 1 - homeOdds, self.kFactor, trackerDF)
-            
+                        self.addWin(awayTeam.team_name, homeTeam.team_name, trackerDF)
+                        self.adjustElo(awayTeam.team_name, homeTeam.team_name, 1 - homeOdds, self.kFactor, trackerDF)
+
+            # Separate teams by division
             AFCEast = trackerDF[trackerDF['Division'] == 'AFC East']['Team'].to_list()
             AFCWest = trackerDF[trackerDF['Division'] == 'AFC West']['Team'].to_list()
             AFCNorth = trackerDF[trackerDF['Division'] == 'AFC North']['Team'].to_list()
@@ -409,16 +416,16 @@ class Command(BaseCommand):
             NFCWest = trackerDF[trackerDF['Division'] == 'NFC West']['Team'].to_list()
             NFCSouth = trackerDF[trackerDF['Division'] == 'NFC South']['Team'].to_list()
             NFCNorth = trackerDF[trackerDF['Division'] == 'NFC North']['Team'].to_list()
-            
+
             AllDivisions = [AFCEast, AFCWest, AFCNorth, AFCSouth, NFCEast, NFCWest, NFCSouth, NFCNorth]
-            
+
             AFC = AFCNorth + AFCEast + AFCWest + AFCSouth
             NFC = NFCNorth + NFCEast + NFCWest + NFCSouth
-            
+
             AFCDivisionWinners = []
             NFCDivisionWinners = []
-                    
-            
+
+            # Determine division winners
             for div in AllDivisions:
                 div.sort(key=lambda x: -trackerDF.loc[x, 'TotWins'])
                 winner = self.divTieBreaker(div, trackerDF)
@@ -427,7 +434,8 @@ class Command(BaseCommand):
                     AFCDivisionWinners.append(winner)
                 else:
                     NFCDivisionWinners.append(winner)
-                
+
+            # Determine wildcard teams
             AFCWildcard = list(set(AFC) - set(AFCDivisionWinners))
             NFCWildcard = list(set(NFC) - set(NFCDivisionWinners))
             
@@ -435,12 +443,13 @@ class Command(BaseCommand):
             NFCWildcard.sort(key = lambda x: -trackerDF.loc[x, 'TotWins'])
             AFCDivisionWinners.sort(key = lambda x: -trackerDF.loc[x, 'TotWins'])
             NFCDivisionWinners.sort(key = lambda x: -trackerDF.loc[x, 'TotWins'])
-            
+
             AFCWildcard = self.seed(AFCWildcard, trackerDF, True)[:3]
             NFCWildcard = self.seed(NFCWildcard, trackerDF, True)[:3]
             AFCDivisionWinners = self.seed(AFCDivisionWinners, trackerDF, False)
             NFCDivisionWinners = self.seed(NFCDivisionWinners, trackerDF, False)
-            
+
+            # Prepare playoff brackets
             AFCPlayoffs = dict()
             NFCPlayoffs = dict()
             for i, team in enumerate(AFCDivisionWinners):
@@ -451,28 +460,29 @@ class Command(BaseCommand):
                 NFCPlayoffs[i+1] = team
             for i, team in enumerate(NFCWildcard):
                 NFCPlayoffs[i+5] = team
-                
 
+            # Assign playoff rounds
             for seed in AFCPlayoffs:
                 team = AFCPlayoffs[seed]
                 if seed == 1:
                     trackerDF.loc[team, 'Playoff Round'] = 'Divisional'
                 else:
                     trackerDF.loc[team, 'Playoff Round'] = 'Wildcard'
-            
+
             for seed in NFCPlayoffs:
                 team = NFCPlayoffs[seed]
                 if seed == 1:
                     trackerDF.loc[team, 'Playoff Round'] = 'Divisional'
                 else:
                     trackerDF.loc[team, 'Playoff Round'] = 'Wildcard'
-            
-            #Sim WildCard
+
+            # Simulate playoffs and Super Bowl
             self.simPlayoffs(NFCPlayoffs, trackerDF)
             self.simPlayoffs(AFCPlayoffs, trackerDF)
             champs = self.simSuperBowl(NFCPlayoffs, AFCPlayoffs, trackerDF)
             resultsDF.loc[champs, 'SuperBowl'] += 1
-            
+
+            # Update results DataFrame with division championships and top seeds
             for team in self.teams:
                 teamName = team.team_name
                 if trackerDF.loc[teamName, 'Seed'] <= 4 and trackerDF.loc[teamName, 'Seed'] != -1:
@@ -480,17 +490,14 @@ class Command(BaseCommand):
                 if trackerDF.loc[teamName, 'Seed'] == 1:
                     resultsDF.loc[teamName, '1Seed'] += 1
                 resultDict[teamName].append(trackerDF.loc[teamName, 'TotWins'])
+
+        # Calculate and store statistics in results DataFrame
         for team in resultDict:
             resultsDF.loc[team, 'Mean'] = np.mean(resultDict[team])
             resultsDF.loc[team, 'Median'] = np.median(resultDict[team])
             resultsDF.loc[team, '25'] = np.percentile(resultDict[team], 25)
             resultsDF.loc[team, '75'] = np.percentile(resultDict[team], 75)
             resultsDF.loc[team, 'stdev'] = np.std(resultDict[team])
+
+        # Save results to CSV file
         resultsDF.to_csv('test2.csv', mode='w+', index=False)
-                
-                
-        
-        
-         
-                
-        
