@@ -1,8 +1,10 @@
-{% load static %}
 <!doctype html>
 <html lang="en">
 
 <head>
+    
+    {% load static %}
+
     <!-- Bootstrap meta tags and CSS -->
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -13,9 +15,9 @@
     <link rel="stylesheet" href="{% static 'app_template/main.css' %}">
 
     {% if title %}
-        <title>Django app_template - {{ title }}</title>
+    <title>Django app_template - {{ title }}</title>
     {% else %}
-        <title>Django app_template</title>
+    <title>Django app_template</title>
     {% endif %}
 </head>
 
@@ -23,7 +25,7 @@
     <!-- Bootstrap Navbar -->
     <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
         <div class="container">
-            <a class="navbar-brand" href="{% url 'app_template.home' %}">Django app_template</a>
+            <a class="navbar-brand" href="{% url 'app_template.home' %}">NFL Projections</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarToggle"
                 aria-controls="navbarToggle" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
@@ -40,19 +42,20 @@
                 </ul>
                 <ul class="navbar-nav">
                     {% if request.user.is_authenticated %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'app_template.profile' %}">Profile: {{ request.user.username }}</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'app_template.logout' %}">Logout</a>
-                        </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'app_template.profile' %}">Profile: {{ request.user.username
+                            }}</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'app_template.logout' %}">Logout</a>
+                    </li>
                     {% else %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'app_template.register' %}">Register</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'app_template.login' %}">Login</a>
-                        </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'app_template.register' %}">Register</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'app_template.login' %}">Login</a>
+                    </li>
                     {% endif %}
                 </ul>
             </div>
@@ -61,16 +64,18 @@
 
     <!-- Messages -->
     {% if messages %}
-        <ul class="messages">
+    <div class="container mt-3">
+        <div class="alert alert-info">
             {% for message in messages %}
-            <li{% if message.tags %} class="{{ message.tags }}" {% endif %}>{{ message }}</li>
-                {% endfor %}
-        </ul>
+            <div{% if message.tags %} class="alert alert-{{ message.tags }}" {% endif %}>{{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    </div>
     {% endif %}
 
-
     <!-- Main content area -->
-    <main class="container mt-1 pt-1">
+    <main class="container mt-5 pt-4">
         {% block content %}
         {% endblock content %}
     </main>
