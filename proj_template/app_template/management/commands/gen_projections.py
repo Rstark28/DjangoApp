@@ -385,8 +385,13 @@ class Command(BaseCommand):
 
         # Initialize a dictionary to store results for each team
         resultDict = {team.team_name: [] for team in self.teams} 
+        
 
         for currSeason in range(numSeasons):
+
+            gameResults = np.random.random(272)
+        
+            currGame = 0
 
             start_time = time.time()
             print(f"Starting season {currSeason + 1}")
@@ -408,7 +413,8 @@ class Command(BaseCommand):
 
                     # Calculate home team odds of winning
                     homeOdds = self.getHomeOddsStandard(game, self.trackerDF)
-                    randNumber = random.random()
+                    randNumber = gameResults[currGame]
+                    currGame += 1
 
                     if randNumber < homeOdds:
                         self.addWin(homeTeam.team_name, awayTeam.team_name, self.trackerDF)
