@@ -69,73 +69,53 @@ class Command(BaseCommand):
             help = 'Number of Simulations',
             default = '3'
         )
-
-    def calculateDistance(self, city1: float, city2: float) -> float:
-        return geodesic(city1, city2).miles
     
-    #Note: This is non-QB Adjusted, I plan to add a QB-Adjusted model and try 
-    #And create another model that takes other positions into account
     def getHomeOddsStandard(self, Game: UpcomingGames, df: pd.DataFrame) -> float:
-        awayTeam = Game.awayTeam
-        homeTeam = Game.homeTeam
-        homeName = homeTeam.team_name
-        awayName = awayTeam.team_name
-        awayElo = df.loc[awayName, 'Elo']
-        homeElo = df.loc[homeName, 'Elo']
-        cityName = Game.city
-        homeCityName = ' '.join((homeName.split(' '))[:-1])
-        awayCityName = ' '.join((awayName.split(' '))[:-1])
-        gameCity = self.cities.get(name=cityName)
-        homeCity = self.cities.get(name=homeCityName)
-        awayCity = self.cities.get(name=awayCityName)
-        gameCords = (gameCity.lat,  gameCity.long)
-        homeCords = (homeCity.lat, homeCity.long)
-        awayCords = (awayCity.lat, awayCity.long)
-    
-        homeDistance = self.calculateDistance(gameCords, homeCords)
-        awayDistance = self.calculateDistance(gameCords, awayCords)
+
+        home = Game.homeTeam
+        away = Game.awayTeam
+
+        gameCords = (self.cities.get(name = Game.city).lat,  self.cities.get(name = Game.city).long)
+        homeCords = (self.cities.get(name = home.city).lat, self.cities.get(name = home.city).long)
+        awayCords = (self.cities.get(name = away.city).lat, self.cities.get(name = away.city).long)
+        homeDistance = geodesic(gameCords, homeCords).miles
+        awayDistance = geodesic(gameCords, awayCords).miles
         
-        homeDiff = homeElo - awayElo
+        eloDiff = home.elo - away.elo
         if Game.after_bye_home:
-            homeDiff += 25
+            eloDiff += 25
         if Game.after_bye_away:
-            homeDiff -= 25
+            eloDiff -= 25
         if not Game.isNeutral:
-            homeDiff += 48
-        homeDiff -= homeDistance * 4 / 1000
-        homeDiff += awayDistance * 4 / 1000
-        homeOdds = 1/(10**(-1*homeDiff/400)+1)
+            eloDiff += 48
+        eloDiff -= homeDistance * 4 / 1000
+        eloDiff += awayDistance * 4 / 1000
+        homeOdds = 1 / (10 ** (-1 * eloDiff / 400) + 1)
         return homeOdds    
     
-    def getPlayoffOddsStandard(self, homeTeam: str, awayTeam: str, df: pd.DataFrame, homeBye: bool = False, isSuperBowl = True) -> float:
-        awayElo = df.loc[awayTeam, 'Elo']
-        homeElo = df.loc[homeTeam, 'Elo']
+    def getPlayoffOddsStandard(self, home: NFLTeam, away: NFLTeam, df: pd.DataFrame, homeBye: bool = False, isSuperBowl = False) -> float:
+        
         if not isSuperBowl:
-            homeCityName = ' '.join((homeTeam.split(' '))[:-1])
+            gameCity = home.city
         else:
-            homeCityName = self.superBowlCity
-        awayCityName = ' '.join((awayTeam.split(' '))[:-1])
-        homeCity = self.cities.get(name=homeCityName)
-        awayCity = self.cities.get(name=awayCityName)
-        homeCords = (homeCity.lat, homeCity.long)
-        awayCords = (awayCity.lat, awayCity.long)
-        
-        
-        distanceTraveled = self.calculateDistance(homeCords, awayCords)
-        homeDiff = (homeElo - awayElo + distanceTraveled * 4 / 1000) 
-        if not isSuperBowl: 
-            homeDiff += 48
-        else: 
-            homeTravelCityName = ' '.join((homeTeam.split(' '))[:-1])
-            homeTravelCity = self.cities.get(name=homeTravelCityName)
-            homeTravelCords = (homeTravelCity.lat, homeTravelCity.long)
-            distanceHomeTravels = self.calculateDistance(homeTravelCords, homeCords)
-            homeDiff -= distanceHomeTravels * 4 / 1000
+            gameCity = self.superBowlCity
             
+        gameCords = (self.cities.get(name = gameCity).lat,  self.cities.get(name = gameCity).long)
+        homeCords = (self.cities.get(name = home.city).lat, self.cities.get(name = home.city).long)
+        awayCords = (self.cities.get(name = away.city).lat, self.cities.get(name = away.city).long)
+        homeDistance = geodesic(gameCords, homeCords).miles
+        awayDistance = geodesic(gameCords, awayCords).miles
+        
+        eloDiff = home.elo - away.elo
         if homeBye:
-            homeDiff += 25
-        homeDiff *= 1.2
-        homeOdds = 1/(10**(-1*homeDiff/400)+1)
+            eloDiff += 25
+        if not isSuperBowl:
+            eloDiff += 48
+        eloDiff -= homeDistance * 4 / 1000
+        eloDiff += awayDistance * 4 / 1000
+        eloDiff *= 1.2
+
+        homeOdds = 1 / (10 ** (-1 * eloDiff / 400) + 1)
         return homeOdds
         
     def addWin(self, winner: str, loser: str, df: pd.DataFrame):
@@ -308,9 +288,11 @@ class Command(BaseCommand):
             HigherSeed = seeds[i]
             j = -1-i
             LowerSeed = seeds[j]
+            Home = NFLTeam.objects.get(name=playoffs[HigherSeed])
+            Away = NFLTeam.objects.get(name=playoffs[LowerSeed])
+            homeOdds = self.getPlayoffOddsStandard(Home, Away, df, offBye)
             Home = playoffs[HigherSeed]
             Away = playoffs[LowerSeed]
-            homeOdds = self.getPlayoffOddsStandard(Home, Away, df, offBye)
             randVar = self.gameResults[self.currGame]
             self.currGame += 1
             if randVar < homeOdds:
@@ -335,9 +317,11 @@ class Command(BaseCommand):
         self.simRound(playoffs, df, 2, roundDict)
         
     def simSuperBowl(self, NFC: dict, AFC: dict, df: pd.DataFrame) -> None:
+        NFCChamp = NFLTeam.objects.get(name=list(NFC.values())[0])
+        AFCChamp = NFLTeam.objects.get(name=list(AFC.values())[0])
+        NFCOdds = self.getPlayoffOddsStandard(AFCChamp, NFCChamp, df, False, isSuperBowl=True)
         NFCChamp = list(NFC.values())[0]
         AFCChamp = list(AFC.values())[0]
-        NFCOdds = self.getPlayoffOddsStandard(AFCChamp, NFCChamp, df, False, isSuperBowl=True)
         randVal = self.gameResults[self.currGame]
         if randVal < NFCOdds:
             winner = NFCChamp
@@ -358,7 +342,7 @@ class Command(BaseCommand):
     def setSeasonTracker(self):
 
         for team in self.teams:
-            name = team.team_name
+            name = team.name
             self.trackerDF.loc[name] = {
                 'Team': name,
                 'Elo': team.elo,
@@ -401,11 +385,11 @@ class Command(BaseCommand):
                 self.currGame += 1
 
                 if randNumber < homeOdds:
-                    self.addWin(homeTeam.team_name, awayTeam.team_name, self.trackerDF)
-                    self.adjustElo(homeTeam.team_name, awayTeam.team_name, homeOdds, self.kFactor, self.trackerDF)
+                    self.addWin(homeTeam.name, awayTeam.name, self.trackerDF)
+                    self.adjustElo(homeTeam.name, awayTeam.name, homeOdds, self.kFactor, self.trackerDF)
                 else:
-                    self.addWin(awayTeam.team_name, homeTeam.team_name, self.trackerDF)
-                    self.adjustElo(awayTeam.team_name, homeTeam.team_name, 1 - homeOdds, self.kFactor, self.trackerDF)
+                    self.addWin(awayTeam.name, homeTeam.name, self.trackerDF)
+                    self.adjustElo(awayTeam.name, homeTeam.name, 1 - homeOdds, self.kFactor, self.trackerDF)
 
         # Separate teams by division
         AFCEast = self.trackerDF[self.trackerDF['Division'] == 'AFC East'].index.to_list()
@@ -487,7 +471,7 @@ class Command(BaseCommand):
 
         # Update results DataFrame with division championships and top seeds
         for team in self.teams:
-            teamName = team.team_name
+            teamName = team.name
             if self.trackerDF.loc[teamName, 'Seed'] <= 4 and self.trackerDF.loc[teamName, 'Seed'] != -1:
                 self.resultsDF.loc[teamName, 'DivChamps'] += 1
             if self.trackerDF.loc[teamName, 'Seed'] == 1:
@@ -508,10 +492,10 @@ class Command(BaseCommand):
 
         # Initialize results DataFrame with team names and zero values
         for team in self.teams:
-            self.resultsDF.loc[team.team_name] = [team.team_name, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+            self.resultsDF.loc[team.name] = [team.name, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
         # Initialize a dictionary to store results for each team
-        self.resultDict = {team.team_name: [] for team in self.teams} 
+        self.resultDict = {team.name: [] for team in self.teams} 
         
         self.allGameResults = []
         for i in range(numSeasons):

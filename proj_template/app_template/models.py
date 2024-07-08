@@ -39,20 +39,19 @@ class Quarterbacks(models.Model):
         return self.name
 
 class NFLTeam(models.Model):
-    team_name = models.CharField(max_length=100)
+    name = models.CharField(max_length=100)
+    city = models.CharField(max_length=100, blank=True)
     abbreviation = models.CharField(max_length=3, unique=True)
     color_hex = models.CharField(max_length=7)
     totWins = models.IntegerField(default=0)
     divWins = models.IntegerField(default=0)
     confWins = models.IntegerField(default=0)
     elo = models.FloatField(default=float(0))
-    
 
-    # Many-to-Many relationship with HistoricalData
     historical_games = models.ManyToManyField(HistoricalData, related_name='teams', blank=True)
 
     def __str__(self):
-        return self.team_name
+        return self.name
 
 class UpcomingGames(models.Model):
     date = models.DateField()

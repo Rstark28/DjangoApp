@@ -10,13 +10,13 @@
             <option value="">Change Team</option>
             {% for team in nfl_teams %}
             <option value="{{ team.abbreviation }}" style="color: {{ team.color_hex }};" {% if selected_team and team.abbreviation == selected_team.abbreviation %} selected {% endif %}>
-                {{ team.team_name }}
+                {{ team.name }}
             </option>
             {% endfor %}
         </select>
     </form>
 
-    <h2>{{ selected_team.team_name }}</h2>
+    <h2>{{ selected_team.name }}</h2>
     {% if selected_team %}
         <div id="container" style="width:100%; height:400px;"></div>
     {% else %}
