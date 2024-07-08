@@ -22,7 +22,7 @@ class Command(BaseCommand):
         self.cities = City.objects.all()
 
         # Initialize a DataFrame to track the current state of the simulation
-        self.trackerDF = pd.DataFrame(columns=['Team', 'Elo', 'TotWins', 'DivWins', 'ConfWins', 'TeamsLostTo', 'TeamsBeat', 'Division', 'Seed', 'Playoff Round'])
+        self.trackerDF = pd.DataFrame(columns=['Team', 'Elo', 'TotWins', 'DivWins', 'ConfWins', 'TeamsLostTo', 'TeamsBeat', 'Division', 'Conference', 'Seed', 'Playoff Round'])
         self.trackerDF.set_index('Team', inplace=True)
 
         self.divisionDict = {
@@ -59,8 +59,7 @@ class Command(BaseCommand):
             "San Francisco 49ers": "NFC West",
             "Seattle Seahawks": "NFC West"
         }  
-        
-    
+          
     def add_arguments(self, parser):
 
         parser.add_argument(
@@ -69,6 +68,38 @@ class Command(BaseCommand):
             help = 'Number of Simulations',
             default = '3'
         )
+
+    def handle(self, *args, **kwargs):
+
+        # Number of simulations to run
+        numSeasons = kwargs['num']
+
+        # Create a DataFrame to store results with specified columns
+        self.resultsDF = pd.DataFrame(columns=['Team', 'SuperBowl', 'DivChamps', '1Seed', 'Mean', 'Median', '25', '75', 'stdev'])
+
+        # Initialize results DataFrame with team names and zero values
+        for team in self.teams:
+            self.resultsDF.loc[team.name] = [team.name, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+        # Initialize a dictionary to store results for each team
+        self.resultDict = {team.name: [] for team in self.teams} 
+        
+        # Generate game results
+        self.allGameResults = [np.random.random(285) for _ in range(numSeasons)]
+        
+        for currSeason in range(numSeasons):
+            self.simSeason(currSeason)
+
+        # Calculate and store statistics in results DataFrame
+        for team in self.resultDict:
+            self.resultsDF.loc[team, 'Mean'] = np.mean(self.resultDict[team])
+            self.resultsDF.loc[team, 'Median'] = np.median(self.resultDict[team])
+            self.resultsDF.loc[team, '25'] = np.percentile(self.resultDict[team], 25)
+            self.resultsDF.loc[team, '75'] = np.percentile(self.resultDict[team], 75)
+            self.resultsDF.loc[team, 'stdev'] = np.std(self.resultDict[team])
+
+        # Save results to CSV file
+        self.resultsDF.to_csv('test2.csv', mode='w+', index=False)
     
     def getHomeOddsStandard(self, Game: UpcomingGames, df: pd.DataFrame) -> float:
 
@@ -119,27 +150,22 @@ class Command(BaseCommand):
         return homeOdds
         
     def addWin(self, winner: str, loser: str, df: pd.DataFrame):
+
         df.loc[winner, 'TotWins'] +=  1 
-        winnerDiv = df.loc[winner, 'Division']
-        loserDiv = df.loc[loser, 'Division']
-        if winnerDiv == loserDiv:
+
+        if df.loc[winner, 'Division'] == df.loc[loser, 'Division']:
             df.loc[winner, 'DivWins'] += 1
             df.loc[winner, 'ConfWins'] += 1
-        elif winnerDiv.split()[0] == loserDiv.split()[0]:
+
+        elif df.loc[winner, 'Conference'] == df.loc[loser, 'Conference']:
             df.loc[winner, 'ConfWins'] += 1
 
-        if df.loc[winner, 'TeamsBeat'] == '':
-            df.loc[winner, 'TeamsBeat'] += f"{loser}"
-        else:
-            df.loc[winner, 'TeamsBeat'] += f";{loser}"
-            
-        if df.loc[loser, 'TeamsLostTo'] == '':
-            df.loc[loser, 'TeamsLostTo'] = winner
-        else:
-            df.loc[loser, 'TeamsLostTo'] += f";{winner}"    
+        df.at[winner, 'TeamsBeat'] = f"{df.at[winner, 'TeamsBeat']};{loser}".strip(';')
+        df.at[loser, 'TeamsLostTo'] = f"{df.at[loser, 'TeamsLostTo']};{winner}".strip(';')
 
 
     def divBreakTieHelper(self, tied: list[str], division: list[str], df: pd.DataFrame):
+
         if len(tied) == 1:
             return tied[0]
         
@@ -308,8 +334,6 @@ class Command(BaseCommand):
             del playoffs[losingSeed]
             
             
-            
-        
     def simPlayoffs(self, playoffs: dict, df: pd.DataFrame):
         roundDict = {0: 'Divisional', 1: 'Conference', 2: 'Super Bowl'}
         self.simRound(playoffs, df, 0, roundDict)
@@ -342,16 +366,16 @@ class Command(BaseCommand):
     def setSeasonTracker(self):
 
         for team in self.teams:
-            name = team.name
-            self.trackerDF.loc[name] = {
-                'Team': name,
+            self.trackerDF.loc[team.name] = {
+                'Team': team.name,
                 'Elo': team.elo,
                 'ConfWins': team.confWins,
                 'TotWins': team.totWins,
                 'DivWins': team.divWins,
                 'TeamsLostTo': '',
                 'TeamsBeat': '',
-                'Division': self.divisionDict[name],
+                'Division': self.divisionDict[team.name],
+                'Conference': self.divisionDict[team.name].split()[0],
                 'Seed': -1,
                 'Playoff Round': 'None'
             }
@@ -481,39 +505,3 @@ class Command(BaseCommand):
         end_time = time.time()
         elapsed_time = end_time - start_time
         print(f"Finished season {currSeason + 1} in {elapsed_time:.2f} seconds")               
-          
-    def handle(self, *args, **kwargs):
-
-        # Number of simulations to run
-        numSeasons = kwargs['num']
-
-        # Create a DataFrame to store results with specified columns
-        self.resultsDF = pd.DataFrame(columns=['Team', 'SuperBowl', 'DivChamps', '1Seed', 'Mean', 'Median', '25', '75', 'stdev'])
-
-        # Initialize results DataFrame with team names and zero values
-        for team in self.teams:
-            self.resultsDF.loc[team.name] = [team.name, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-
-        # Initialize a dictionary to store results for each team
-        self.resultDict = {team.name: [] for team in self.teams} 
-        
-        self.allGameResults = []
-        for i in range(numSeasons):
-            self.allGameResults.append(np.random.random(285))
-        
-        
-
-        for currSeason in range(numSeasons):
-            self.simSeason(currSeason)
-
-
-        # Calculate and store statistics in results DataFrame
-        for team in self.resultDict:
-            self.resultsDF.loc[team, 'Mean'] = np.mean(self.resultDict[team])
-            self.resultsDF.loc[team, 'Median'] = np.median(self.resultDict[team])
-            self.resultsDF.loc[team, '25'] = np.percentile(self.resultDict[team], 25)
-            self.resultsDF.loc[team, '75'] = np.percentile(self.resultDict[team], 75)
-            self.resultsDF.loc[team, 'stdev'] = np.std(self.resultDict[team])
-
-        # Save results to CSV file
-        self.resultsDF.to_csv('test2.csv', mode='w+', index=False)
