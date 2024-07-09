@@ -28,7 +28,7 @@ class Command(BaseCommand):
         for game in allGames:
             if game.week not in self.gamesByWeek:
                 self.gamesByWeek[game.week] = []
-                self.gamesByWeek[game.week].append(game)
+            self.gamesByWeek[game.week].append(game)
 
         # Initialize a DataFrame to track the current state of the simulation
         self.trackerDF = pd.DataFrame(columns=['Team', 'Elo', 'TotWins', 'DivWins', 'ConfWins', 'TeamsLostTo', 'TeamsBeat', 'Division', 'Conference', 'Seed', 'Playoff Round'])
@@ -448,7 +448,7 @@ class Command(BaseCommand):
                 else:
                     self.addWin(awayTeam.name, homeTeam.name, self.trackerDF)
                     self.adjustElo(awayTeam.name, homeTeam.name, 1 - homeOdds, self.kFactor, self.trackerDF)
-
+            
         AFCDivisionWinners = []
         NFCDivisionWinners = []
 
@@ -495,7 +495,7 @@ class Command(BaseCommand):
             else:
                 self.trackerDF.loc[AFCPlayoffs[seed], 'Playoff Round'] = 'Wildcard'
                 self.trackerDF.loc[NFCPlayoffs[seed], 'Playoff Round'] = 'Wildcard'
-
+        
         # Simulate playoffs and Super Bowl
         self.simPlayoffs(NFCPlayoffs, self.trackerDF)
         self.simPlayoffs(AFCPlayoffs, self.trackerDF)
@@ -509,4 +509,8 @@ class Command(BaseCommand):
                 self.resultsDF.loc[teamName, 'DivChamps'] += 1
             if self.trackerDF.loc[teamName, 'Seed'] == 1:
                 self.resultsDF.loc[teamName, '1Seed'] += 1
-            self.resultDict[teamName].append(self.trackerDF.loc[teamName, 'TotWins'])              
+            self.resultDict[teamName].append(self.trackerDF.loc[teamName, 'TotWins'])
+
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        print(f"Finished season {currSeason + 1} in {elapsed_time:.2f} seconds")          
