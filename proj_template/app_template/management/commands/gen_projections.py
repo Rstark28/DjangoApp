@@ -83,6 +83,9 @@ class Command(BaseCommand):
         self.AFC = self.AFCNorth + self.AFCEast + self.AFCWest + self.AFCSouth
         self.NFC = self.NFCNorth + self.NFCEast + self.NFCWest + self.NFCSouth
           
+    # Adds command-line arguments to the parser.
+    # Parameters:
+    # - parser: ArgumentParser object to which arguments will be added.
     def add_arguments(self, parser):
 
         parser.add_argument(
@@ -92,6 +95,9 @@ class Command(BaseCommand):
             default = '100'
         )
 
+    # Adds command-line arguments to the parser.
+    # Parameters:
+    # - parser: ArgumentParser object to which arguments will be added.
     def handle(self, *args, **kwargs):
 
         # Number of simulations to run
@@ -124,12 +130,23 @@ class Command(BaseCommand):
         # Save results to CSV file
         self.resultsDF.to_csv('test2.csv', mode='w+', index=False)
 
+    # Retrieves the coordinates (latitude, longitude) for a given city.
+    # Parameters:
+    # - cityName: The name of the city for which coordinates are requested.
+    # Returns:
+    # - A tuple containing the latitude and longitude of the city.
     def getCityCoordinates(self, cityName):
         if cityName not in self.cityCoordinatesCache:
             city = self.cities.get(name=cityName)
             self.cityCoordinatesCache[cityName] = (city.lat, city.long)
         return self.cityCoordinatesCache[cityName]
 
+    # Calculates the home team's odds of winning a game.
+    # Parameters:
+    # - game: The game for which to calculate the odds.
+    # - df: DataFrame containing tracking data.
+    # Returns:
+    # - The odds of the home team winning the game as a float.
     def getHomeOddsStandard(self, game: UpcomingGames, df: pd.DataFrame) -> float:
         home = game.homeTeam
         away = game.awayTeam
@@ -153,7 +170,16 @@ class Command(BaseCommand):
 
         homeOdds = 1 / (10 ** (-1 * eloDiff / 400) + 1)
         return homeOdds
-    
+
+    # Calculates the home team's odds of winning a playoff game.
+    # Parameters:
+    # - home: The home team.
+    # - away: The away team.
+    # - df: DataFrame containing tracking data.
+    # - homeBye: Indicates if the home team is coming off a bye week.
+    # - isSuperBowl: Indicates if the game is the Super Bowl.
+    # Returns:
+    # - The odds of the home team winning the playoff game as a float.
     def getPlayoffOddsStandard(self, home: NFLTeam, away: NFLTeam, df: pd.DataFrame, homeBye: bool = False, isSuperBowl = False) -> float:
         
         if not isSuperBowl:
@@ -179,6 +205,11 @@ class Command(BaseCommand):
         homeOdds = 1 / (10 ** (-1 * eloDiff / 400) + 1)
         return homeOdds
         
+    # Updates the DataFrame with a win for the specified team.
+    # Parameters:
+    # - winner: The name of the winning team. 
+    # - loser: The name of the losing team.
+    # - df: DataFrame containing tracking data.
     def addWin(self, winner: str, loser: str, df: pd.DataFrame):
 
         df.loc[winner, 'TotWins'] +=  1 
@@ -193,7 +224,13 @@ class Command(BaseCommand):
         df.at[winner, 'TeamsBeat'] = f"{df.at[winner, 'TeamsBeat']};{loser}".strip(';')
         df.at[loser, 'TeamsLostTo'] = f"{df.at[loser, 'TeamsLostTo']};{winner}".strip(';')
 
-    # TODO
+    # Resolves tie-breakers within a division.
+    # Parameters:
+    # - tied: List of tied teams.
+    # - division: List of teams in the division.
+    # - df: DataFrame containing tracking data.
+    # Returns:
+    # - The name of the team that wins the tie-breaker.
     def divBreakTieHelper(self, tied: list[str], division: list[str], df: pd.DataFrame):
 
         if len(tied) == 1:
@@ -237,7 +274,12 @@ class Command(BaseCommand):
         #To add other tie breakers later on
         return random.choice(tied)
 
-    # TODO       
+    # Determines the division winner when there is a tie.
+    # Parameters:
+    # - division: List of teams in the division.
+    # - df: DataFrame containing tracking data.
+    # Returns:
+    # - The name of the division-winning team.
     def divisionTieBreaker(self, division: list[str], df: pd.DataFrame) -> str:
         firstPlace = division[0]
         tiedForFirst = [firstPlace]
@@ -247,7 +289,14 @@ class Command(BaseCommand):
         winner = self.divBreakTieHelper(tiedForFirst, division, df)
         return winner
     
-    # TODO
+    # Finds ties within a list of teams.
+    # Parameters:
+    # - teams: List of teams.
+    # - isWildCard: Boolean indicating if the tie is for a wildcard spot.
+    # - df: DataFrame containing tracking data.
+    # - key: Function to use as the key for finding ties.
+    # Returns:
+    # - A list of lists, each containing teams that are tied.
     def findTies(self, teams: list[str], isWildCard: bool, df: pd.DataFrame, key) -> list[list[str]]:
         res = []
         currTieList = [teams[0]]
@@ -267,7 +316,14 @@ class Command(BaseCommand):
 
         return res
 
-    # TODO 
+    # Finds ties within a list of teams.
+    # Parameters:
+    # - teams: List of teams.
+    # - isWildCard: Boolean indicating if the tie is for a wildcard spot.
+    # - df: DataFrame containing tracking data.
+    # - key: Function to use as the key for finding ties.
+    # Returns:
+    # - A list of lists, each containing teams that are tied.
     def resolveTies(self, tie: list[str], df: pd.DataFrame) -> list[str]:
         ogLen = len(tie)
         if ogLen == 1:
@@ -310,7 +366,14 @@ class Command(BaseCommand):
         return res
                 
                 
-    # TODO
+    # Finds ties within a list of teams.
+    # Parameters:
+    # - teams: List of teams.
+    # - isWildCard: Boolean indicating if the tie is for a wildcard spot.
+    # - df: DataFrame containing tracking data.
+    # - key: Function to use as the key for finding ties.
+    # Returns:
+    # - A list of lists, each containing teams that are tied.
     def seed(self, teams: list[str], df: pd.DataFrame, isWildCard: bool) -> list[str]:
 
         tieList = self.findTies(teams, isWildCard, df, lambda x: df.loc[x, 'TotWins'])
@@ -329,7 +392,12 @@ class Command(BaseCommand):
         
         return newList 
     
-    # TODO
+    # Simulates a round of the playoffs.
+    # Parameters:
+    # - playoffs: Dictionary of playoff teams and their seeds.
+    # - df: DataFrame containing tracking data.
+    # - round: Integer indicating the current playoff round.
+    # - roundDict: Dictionary mapping round numbers to round names.
     def simRound(self, playoffs: dict, df: pd.DataFrame, round: int, roundDict: dict) -> None:
         if round == 0:
             beginning = 1
@@ -359,21 +427,36 @@ class Command(BaseCommand):
                 winner = Home
                 loser = Away
                 losingSeed = LowerSeed
+                winningOdds = homeOdds
             else:
                 winner = Away
                 loser = Home
                 losingSeed = HigherSeed
-            self.adjustElo(winner, loser, homeOdds, self.kFactor, df)
+                winningOdds = 1 - homeOdds
+            self.adjustElo(winner, loser, winningOdds, self.kFactor, df)
             df.loc[winner, 'Playoff Round'] = roundDict[round]
             del playoffs[losingSeed]
             
-            
+    # Simulates a round of the playoffs.
+    # Parameters:
+    # - playoffs: Dictionary of playoff teams and their seeds.
+    # - df: DataFrame containing tracking data.
+    # - round: Integer indicating the current playoff round.
+    # - roundDict: Dictionary mapping round numbers to round names.
     def simPlayoffs(self, playoffs: dict, df: pd.DataFrame):
         roundDict = {0: 'Divisional', 1: 'Conference', 2: 'Super Bowl'}
         self.simRound(playoffs, df, 0, roundDict)
         self.simRound(playoffs, df, 1, roundDict)
         self.simRound(playoffs, df, 2, roundDict)
-        
+    
+    
+    # Simulates the Super Bowl.
+    # Parameters:
+    # - NFC: Dictionary of NFC playoff teams and their seeds.
+    # - AFC: Dictionary of AFC playoff teams and their seeds.
+    # - df: DataFrame containing tracking data.
+    # Returns:
+    # - The name of the Super Bowl champion team.
     def simSuperBowl(self, NFC: dict, AFC: dict, df: pd.DataFrame) -> None:
 
         # Get AFC and NFC champions
@@ -381,23 +464,31 @@ class Command(BaseCommand):
         NFCChamp = NFLTeam.objects.get(name=list(NFC.values())[0])
 
         # Simulate the SuperBowl
-        NFCOdds = self.getPlayoffOddsStandard(AFCChamp, NFCChamp, df, False, isSuperBowl=True)
+        NFCOdds = self.getPlayoffOddsStandard(NFCChamp, AFCChamp, df, False, isSuperBowl=True)
         outcome = self.gameResults[self.currGame]
         winner, loser = (NFCChamp.name, AFCChamp.name) if outcome < NFCOdds else (AFCChamp.name, NFCChamp.name)
-
+        winnerOdds = NFCOdds if outcome < NFCOdds else 1 - NFCOdds
         # Adjust ELO ratings and update DF to reflect champion
-        self.adjustElo(winner, loser, NFCOdds, self.kFactor, df)
+        self.adjustElo(winner, loser, winnerOdds, self.kFactor, df)
         df.loc[winner, 'Playoff Round'] = "Super Bowl Champ"
 
         return winner
-        
+    
+    # Adjusts ELO ratings for the winner and loser of a game.
+    # Parameters:
+    # - winner: The name of the winning team.
+    # - loser: The name of the losing team.
+    # - winnerOdds: The odds of the winner winning the game.
+    # - kFactor: The K-factor used in the ELO rating calculation.
+    # - df: DataFrame containing tracking data.
     def adjustElo(self, winner: str, loser: str, winnerOdds: float, kFactor: float, df: pd.DataFrame):
 
         eloChange = (1 - winnerOdds) * kFactor
         df.loc[winner, 'Elo'] += eloChange
         df.loc[loser, 'Elo'] -= eloChange
 
-    # TODO
+    # Sets the season tracker for all teams.
+    # Initializes the trackerDF DataFrame with initial team data.
     def setSeasonTracker(self):
 
         for team in self.teams:
@@ -415,7 +506,9 @@ class Command(BaseCommand):
                 'Playoff Round': 'None'
             }
     
-    # TODO     
+    # Simulates an entire season.
+    # Parameters:
+    # - currSeason: The current season number being simulated.    
     def simSeason(self, currSeason: int):
 
         self.gameResults = self.allGameResults[currSeason]
