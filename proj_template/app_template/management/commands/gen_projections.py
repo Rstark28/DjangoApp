@@ -19,7 +19,16 @@ class Command(BaseCommand):
         self.kFactor = 20.0
         self.superBowlCity = 'New Orleans'
         self.teams = NFLTeam.objects.all()
+
         self.cities = City.objects.all()
+        self.cityCoordinatesCache = {}
+
+        allGames = UpcomingGames.objects.all().filter(isComplete=False)
+        self.gamesByWeek = {}
+        for game in allGames:
+            if game.week not in self.gamesByWeek:
+                self.gamesByWeek[game.week] = []
+                self.gamesByWeek[game.week].append(game)
 
         # Initialize a DataFrame to track the current state of the simulation
         self.trackerDF = pd.DataFrame(columns=['Team', 'Elo', 'TotWins', 'DivWins', 'ConfWins', 'TeamsLostTo', 'TeamsBeat', 'Division', 'Conference', 'Seed', 'Playoff Round'])
@@ -58,7 +67,21 @@ class Command(BaseCommand):
             "Los Angeles Rams": "NFC West",
             "San Francisco 49ers": "NFC West",
             "Seattle Seahawks": "NFC West"
-        }  
+        }
+        self.AFCEast = ["New England Patriots", "Buffalo Bills", "Miami Dolphins", "New York Jets"]
+        self.AFCWest = ["Kansas City Chiefs", "Los Angeles Chargers", "Denver Broncos", "Las Vegas Raiders"]
+        self.AFCNorth = ["Pittsburgh Steelers", "Baltimore Ravens", "Cleveland Browns", "Cincinnati Bengals"]
+        self.AFCSouth = ["Tennessee Titans", "Indianapolis Colts", "Houston Texans", "Jacksonville Jaguars"]
+
+        self.NFCEast = ["Dallas Cowboys", "Philadelphia Eagles", "New York Giants", "Washington Commanders"]
+        self.NFCWest = ["San Francisco 49ers", "Seattle Seahawks", "Los Angeles Rams", "Arizona Cardinals"]
+        self.NFCNorth = ["Green Bay Packers", "Chicago Bears", "Minnesota Vikings", "Detroit Lions"]
+        self.NFCSouth = ["Tampa Bay Buccaneers", "New Orleans Saints", "Carolina Panthers", "Atlanta Falcons"]
+
+        self.AllDivisions = [self.AFCEast, self.AFCWest, self.AFCNorth, self.AFCSouth, self.NFCEast, self.NFCWest, self.NFCSouth, self.NFCNorth]
+
+        self.AFC = self.AFCNorth + self.AFCEast + self.AFCWest + self.AFCSouth
+        self.NFC = self.NFCNorth + self.NFCEast + self.NFCWest + self.NFCSouth
           
     def add_arguments(self, parser):
 
@@ -66,7 +89,7 @@ class Command(BaseCommand):
             '-n', '--num',
             type = int,
             help = 'Number of Simulations',
-            default = '3'
+            default = '100'
         )
 
     def handle(self, *args, **kwargs):
@@ -100,29 +123,36 @@ class Command(BaseCommand):
 
         # Save results to CSV file
         self.resultsDF.to_csv('test2.csv', mode='w+', index=False)
-    
-    def getHomeOddsStandard(self, Game: UpcomingGames, df: pd.DataFrame) -> float:
 
-        home = Game.homeTeam
-        away = Game.awayTeam
+    def getCityCoordinates(self, cityName):
+        if cityName not in self.cityCoordinatesCache:
+            city = self.cities.get(name=cityName)
+            self.cityCoordinatesCache[cityName] = (city.lat, city.long)
+        return self.cityCoordinatesCache[cityName]
 
-        gameCords = (self.cities.get(name = Game.city).lat,  self.cities.get(name = Game.city).long)
-        homeCords = (self.cities.get(name = home.city).lat, self.cities.get(name = home.city).long)
-        awayCords = (self.cities.get(name = away.city).lat, self.cities.get(name = away.city).long)
-        homeDistance = geodesic(gameCords, homeCords).miles
-        awayDistance = geodesic(gameCords, awayCords).miles
-        
+    def getHomeOddsStandard(self, game: UpcomingGames, df: pd.DataFrame) -> float:
+        home = game.homeTeam
+        away = game.awayTeam
+
+        gameCoords = self.getCityCoordinates(game.city)
+        homeCoords = self.getCityCoordinates(home.city)
+        awayCoords = self.getCityCoordinates(away.city)
+
+        homeDistance = geodesic(gameCoords, homeCoords).miles
+        awayDistance = geodesic(gameCoords, awayCoords).miles
+
         eloDiff = home.elo - away.elo
-        if Game.after_bye_home:
+        if game.after_bye_home:
             eloDiff += 25
-        if Game.after_bye_away:
+        if game.after_bye_away:
             eloDiff -= 25
-        if not Game.isNeutral:
+        if not game.isNeutral:
             eloDiff += 48
         eloDiff -= homeDistance * 4 / 1000
         eloDiff += awayDistance * 4 / 1000
+
         homeOdds = 1 / (10 ** (-1 * eloDiff / 400) + 1)
-        return homeOdds    
+        return homeOdds
     
     def getPlayoffOddsStandard(self, home: NFLTeam, away: NFLTeam, df: pd.DataFrame, homeBye: bool = False, isSuperBowl = False) -> float:
         
@@ -131,11 +161,11 @@ class Command(BaseCommand):
         else:
             gameCity = self.superBowlCity
             
-        gameCords = (self.cities.get(name = gameCity).lat,  self.cities.get(name = gameCity).long)
-        homeCords = (self.cities.get(name = home.city).lat, self.cities.get(name = home.city).long)
-        awayCords = (self.cities.get(name = away.city).lat, self.cities.get(name = away.city).long)
-        homeDistance = geodesic(gameCords, homeCords).miles
-        awayDistance = geodesic(gameCords, awayCords).miles
+        gameCoords = self.getCityCoordinates(gameCity)
+        homeCoords = self.getCityCoordinates(home.city)
+        awayCoords = self.getCityCoordinates(away.city)
+        homeDistance = geodesic(gameCoords, homeCoords).miles
+        awayDistance = geodesic(gameCoords, awayCoords).miles
         
         eloDiff = home.elo - away.elo
         if homeBye:
@@ -163,7 +193,7 @@ class Command(BaseCommand):
         df.at[winner, 'TeamsBeat'] = f"{df.at[winner, 'TeamsBeat']};{loser}".strip(';')
         df.at[loser, 'TeamsLostTo'] = f"{df.at[loser, 'TeamsLostTo']};{winner}".strip(';')
 
-
+    # TODO
     def divBreakTieHelper(self, tied: list[str], division: list[str], df: pd.DataFrame):
 
         if len(tied) == 1:
@@ -206,7 +236,8 @@ class Command(BaseCommand):
         #Random at this point. Unlikely to affect projections early on, and plan 
         #To add other tie breakers later on
         return random.choice(tied)
-        
+
+    # TODO       
     def divisionTieBreaker(self, division: list[str], df: pd.DataFrame) -> str:
         firstPlace = division[0]
         tiedForFirst = [firstPlace]
@@ -216,7 +247,7 @@ class Command(BaseCommand):
         winner = self.divBreakTieHelper(tiedForFirst, division, df)
         return winner
     
-    
+    # TODO
     def findTies(self, teams: list[str], isWildCard: bool, df: pd.DataFrame, key) -> list[list[str]]:
         res = []
         currTieList = [teams[0]]
@@ -235,7 +266,8 @@ class Command(BaseCommand):
         res.append(currTieList)
 
         return res
-            
+
+    # TODO 
     def resolveTies(self, tie: list[str], df: pd.DataFrame) -> list[str]:
         ogLen = len(tie)
         if ogLen == 1:
@@ -278,8 +310,9 @@ class Command(BaseCommand):
         return res
                 
                 
-    #Assumes List is already sorted by total wins     
+    # TODO
     def seed(self, teams: list[str], df: pd.DataFrame, isWildCard: bool) -> list[str]:
+
         tieList = self.findTies(teams, isWildCard, df, lambda x: df.loc[x, 'TotWins'])
         newList = []
         for tie in tieList:
@@ -296,6 +329,7 @@ class Command(BaseCommand):
         
         return newList 
     
+    # TODO
     def simRound(self, playoffs: dict, df: pd.DataFrame, round: int, roundDict: dict) -> None:
         if round == 0:
             beginning = 1
@@ -341,20 +375,20 @@ class Command(BaseCommand):
         self.simRound(playoffs, df, 2, roundDict)
         
     def simSuperBowl(self, NFC: dict, AFC: dict, df: pd.DataFrame) -> None:
-        NFCChamp = NFLTeam.objects.get(name=list(NFC.values())[0])
+
+        # Get AFC and NFC champions
         AFCChamp = NFLTeam.objects.get(name=list(AFC.values())[0])
+        NFCChamp = NFLTeam.objects.get(name=list(NFC.values())[0])
+
+        # Simulate the SuperBowl
         NFCOdds = self.getPlayoffOddsStandard(AFCChamp, NFCChamp, df, False, isSuperBowl=True)
-        NFCChamp = list(NFC.values())[0]
-        AFCChamp = list(AFC.values())[0]
-        randVal = self.gameResults[self.currGame]
-        if randVal < NFCOdds:
-            winner = NFCChamp
-            loser = AFCChamp
-        else:
-            winner = AFCChamp
-            loser = NFCChamp
+        outcome = self.gameResults[self.currGame]
+        winner, loser = (NFCChamp.name, AFCChamp.name) if outcome < NFCOdds else (AFCChamp.name, NFCChamp.name)
+
+        # Adjust ELO ratings and update DF to reflect champion
         self.adjustElo(winner, loser, NFCOdds, self.kFactor, df)
         df.loc[winner, 'Playoff Round'] = "Super Bowl Champ"
+
         return winner
         
     def adjustElo(self, winner: str, loser: str, winnerOdds: float, kFactor: float, df: pd.DataFrame):
@@ -362,7 +396,8 @@ class Command(BaseCommand):
         eloChange = (1 - winnerOdds) * kFactor
         df.loc[winner, 'Elo'] += eloChange
         df.loc[loser, 'Elo'] -= eloChange
-    
+
+    # TODO
     def setSeasonTracker(self):
 
         for team in self.teams:
@@ -379,8 +414,10 @@ class Command(BaseCommand):
                 'Seed': -1,
                 'Playoff Round': 'None'
             }
-            
+    
+    # TODO     
     def simSeason(self, currSeason: int):
+
         self.gameResults = self.allGameResults[currSeason]
     
         self.currGame = 0
@@ -391,13 +428,10 @@ class Command(BaseCommand):
         # Initialize tracker for new season sim
         self.setSeasonTracker()
 
-        # Get the list of upcoming games that are not yet complete
-        games = UpcomingGames.objects.all().filter(isComplete=False)
-        
         # Simulate each week of games
         for currWeek in range(1, 18):
 
-            weeklyGames = games.filter(week = currWeek)
+            weeklyGames = self.gamesByWeek[currWeek]
             
             for game in weeklyGames:
                 homeTeam = game.homeTeam
@@ -415,28 +449,11 @@ class Command(BaseCommand):
                     self.addWin(awayTeam.name, homeTeam.name, self.trackerDF)
                     self.adjustElo(awayTeam.name, homeTeam.name, 1 - homeOdds, self.kFactor, self.trackerDF)
 
-        # Separate teams by division
-        AFCEast = self.trackerDF[self.trackerDF['Division'] == 'AFC East'].index.to_list()
-        AFCWest = self.trackerDF[self.trackerDF['Division'] == 'AFC West'].index.to_list()
-        AFCNorth = self.trackerDF[self.trackerDF['Division'] == 'AFC North'].index.to_list()
-        AFCSouth = self.trackerDF[self.trackerDF['Division'] == 'AFC South'].index.to_list()
-
-        NFCEast = self.trackerDF[self.trackerDF['Division'] == 'NFC East'].index.to_list()
-        NFCWest = self.trackerDF[self.trackerDF['Division'] == 'NFC West'].index.to_list()
-        NFCSouth = self.trackerDF[self.trackerDF['Division'] == 'NFC South'].index.to_list()
-        NFCNorth = self.trackerDF[self.trackerDF['Division'] == 'NFC North'].index.to_list()
-
-
-        AllDivisions = [AFCEast, AFCWest, AFCNorth, AFCSouth, NFCEast, NFCWest, NFCSouth, NFCNorth]
-
-        AFC = AFCNorth + AFCEast + AFCWest + AFCSouth
-        NFC = NFCNorth + NFCEast + NFCWest + NFCSouth
-
         AFCDivisionWinners = []
         NFCDivisionWinners = []
 
         # Determine division winners
-        for division in AllDivisions:
+        for division in self.AllDivisions:
             division.sort(key=lambda x: -self.trackerDF.loc[x, 'TotWins'])
             divisionChamp = self.divisionTieBreaker(division, self.trackerDF)
             self.trackerDF.loc[divisionChamp, 'Seed'] = 1
@@ -447,8 +464,8 @@ class Command(BaseCommand):
                 NFCDivisionWinners.append(divisionChamp)
 
         # Determine wildcard teams
-        AFCWildcard = list(set(AFC) - set(AFCDivisionWinners))
-        NFCWildcard = list(set(NFC) - set(NFCDivisionWinners))
+        AFCWildcard = list(set(self.AFC) - set(AFCDivisionWinners))
+        NFCWildcard = list(set(self.NFC) - set(NFCDivisionWinners))
         
         AFCWildcard.sort(key = lambda x: -self.trackerDF.loc[x, 'TotWins'])
         NFCWildcard.sort(key = lambda x: -self.trackerDF.loc[x, 'TotWins'])
@@ -463,29 +480,21 @@ class Command(BaseCommand):
         # Prepare playoff brackets
         AFCPlayoffs = dict()
         NFCPlayoffs = dict()
-        for i, team in enumerate(AFCDivisionWinners):
-            AFCPlayoffs[i+1] = team
-        for i, team in enumerate(AFCWildcard):
-            AFCPlayoffs[i+5] = team
-        for i, team in enumerate(NFCDivisionWinners):
-            NFCPlayoffs[i+1] = team
-        for i, team in enumerate(NFCWildcard):
-            NFCPlayoffs[i+5] = team
+        for i in range(4):
+            AFCPlayoffs[i + 1] = AFCDivisionWinners[i]
+            NFCPlayoffs[i + 1] = NFCDivisionWinners[i]
+        for i in range(3):
+            AFCPlayoffs[i + 5] = AFCWildcard[i]
+            NFCPlayoffs[i + 5] = NFCWildcard[i]
 
         # Assign playoff rounds
-        for seed in AFCPlayoffs:
-            team = AFCPlayoffs[seed]
+        for seed in range(1, 8):
             if seed == 1:
-                self.trackerDF.loc[team, 'Playoff Round'] = 'Divisional'
+                self.trackerDF.loc[AFCPlayoffs[seed], 'Playoff Round'] = 'Divisional'
+                self.trackerDF.loc[NFCPlayoffs[seed], 'Playoff Round'] = 'Divisional'
             else:
-                self.trackerDF.loc[team, 'Playoff Round'] = 'Wildcard'
-
-        for seed in NFCPlayoffs:
-            team = NFCPlayoffs[seed]
-            if seed == 1:
-                self.trackerDF.loc[team, 'Playoff Round'] = 'Divisional'
-            else:
-                self.trackerDF.loc[team, 'Playoff Round'] = 'Wildcard'
+                self.trackerDF.loc[AFCPlayoffs[seed], 'Playoff Round'] = 'Wildcard'
+                self.trackerDF.loc[NFCPlayoffs[seed], 'Playoff Round'] = 'Wildcard'
 
         # Simulate playoffs and Super Bowl
         self.simPlayoffs(NFCPlayoffs, self.trackerDF)
@@ -500,8 +509,4 @@ class Command(BaseCommand):
                 self.resultsDF.loc[teamName, 'DivChamps'] += 1
             if self.trackerDF.loc[teamName, 'Seed'] == 1:
                 self.resultsDF.loc[teamName, '1Seed'] += 1
-            self.resultDict[teamName].append(self.trackerDF.loc[teamName, 'TotWins'])
-
-        end_time = time.time()
-        elapsed_time = end_time - start_time
-        print(f"Finished season {currSeason + 1} in {elapsed_time:.2f} seconds")               
+            self.resultDict[teamName].append(self.trackerDF.loc[teamName, 'TotWins'])              

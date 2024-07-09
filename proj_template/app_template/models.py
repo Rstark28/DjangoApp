@@ -98,4 +98,3 @@ class Projection(models.Model):
     def __str__(self):
         return f"A projection to win {round(self.median)}, making the playoffs {round(self.madePlayoffs / self.n, 4) * 100}% of the time"
     
-
