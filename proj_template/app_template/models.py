@@ -90,8 +90,6 @@ class Projection(models.Model):
     wonConference = models.IntegerField()
     wonSuperBowl = models.IntegerField()
     stdv = models.FloatField()
-    ptdiff = models.FloatField()
-    seasons = models.ManyToManyField(Season, related_name='projections')
     currWeek = models.IntegerField(default = 0)
     
     

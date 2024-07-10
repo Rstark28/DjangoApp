@@ -104,11 +104,11 @@ class Command(BaseCommand):
         numSeasons = kwargs['num']
 
         # Create a DataFrame to store results with specified columns
-        self.resultsDF = pd.DataFrame(columns=['Team', 'SuperBowl', 'DivChamps', '1Seed', 'Mean', 'Median', '25', '75', 'stdev'])
+        self.resultsDF = pd.DataFrame(columns=['Team', 'Playoffs', 'SuperBowl', 'DivChamps', '1Seed', 'Mean', 'Median', '25', '75', 'stdev'])
 
         # Initialize results DataFrame with team names and zero values
         for team in self.teams:
-            self.resultsDF.loc[team.name] = [team.name, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+            self.resultsDF.loc[team.name] = [team.name, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
         # Initialize a dictionary to store results for each team
         self.resultDict = {team.name: [] for team in self.teams} 
@@ -126,6 +126,13 @@ class Command(BaseCommand):
             self.resultsDF.loc[team, '25'] = np.percentile(self.resultDict[team], 25)
             self.resultsDF.loc[team, '75'] = np.percentile(self.resultDict[team], 75)
             self.resultsDF.loc[team, 'stdev'] = np.std(self.resultDict[team])
+            
+            '''Projection.objects.create(Team=self.teams.get(name=team), 
+                                      n= numSeasons,
+                                      mean=float(self.resultsDF.loc[team, 'Mean']),
+                                      median = float(self.resultsDF.loc[team, 'Median'] ),
+                                      madePlayoffs=self.resultsDF)'''
+            
 
         # Save results to CSV file
         self.resultsDF.to_csv('test2.csv', mode='w+', index=False)
@@ -302,15 +309,17 @@ class Command(BaseCommand):
         tied = []
         currTieList = [teams[0]]
         currWins = key(teams[0])
+        numOfTeams = 0
 
         # Iterate over the remaining teams
         for team in teams[1:]:
+            numOfTeams += 1
             if key(team) == currWins:
                 currTieList.append(team)  # If the current team has the same value, add to the current tie list
             else:
                 tied.append(currTieList)  # Otherwise, finalize the current tie list
-                if isWildCard and len(tied) >= 3:
-                    return tied  # If processing wildcard teams, stop after finding three tie groups
+                if isWildCard and numOfTeams >= 3:
+                    return tied  # If processing wildcard teams, stop after finding the tie for the 7 seed
                 currTieList = [team] 
                 currWins = key(team)  # Update the win comparison value
 
@@ -612,6 +621,8 @@ class Command(BaseCommand):
                 self.resultsDF.loc[teamName, 'DivChamps'] += 1
             if self.trackerDF.loc[teamName, 'Seed'] == 1:
                 self.resultsDF.loc[teamName, '1Seed'] += 1
+            if self.trackerDF.loc[teamName, 'Seed'] <= 7 and self.trackerDF.loc[teamName, 'Seed'] != -1:
+                self.resultsDF.loc[teamName, 'Playoffs'] += 1
             self.resultDict[teamName].append(self.trackerDF.loc[teamName, 'TotWins'])
 
         end_time = time.time()
