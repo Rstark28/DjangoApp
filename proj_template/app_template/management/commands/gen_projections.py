@@ -92,12 +92,12 @@ class Command(BaseCommand):
             '-n', '--num',
             type = int,
             help = 'Number of Simulations',
-            default = '100'
+            default = '2'
         )
 
-    # Adds command-line arguments to the parser.
+    # Manages simulation and handles writing to csv.
     # Parameters:
-    # - parser: ArgumentParser object to which arguments will be added.
+    # - args, kwargs.
     def handle(self, *args, **kwargs):
 
         # Number of simulations to run
@@ -231,48 +231,52 @@ class Command(BaseCommand):
     # - df: DataFrame containing tracking data.
     # Returns:
     # - The name of the team that wins the tie-breaker.
-    def divBreakTieHelper(self, tied: list[str], division: list[str], df: pd.DataFrame):
-
+    def divBreakTieHelper(self, tied: list[str], division: list[str], df: pd.DataFrame) -> str:
         if len(tied) == 1:
-            return tied[0]
-        
+            return tied[0]  # If only one team is tied, return it
+
         tiedOrig = len(tied)
         
-        #H2H Tie Breaker
-        commonScore = {team: 0 for team in tied}
-        for i in range(len(tied)):
-            team = tied[i]
-            teamsBeat = df.loc[team, 'TeamsBeat'].split(';')
-            teamsLost = df.loc[team, 'TeamsLostTo'].split(';')
-            otherTeams = tied[:i] + tied[i+1:]
-            for otherTeam in otherTeams:
-                commonScore[team] += teamsBeat.count(otherTeam)
-                commonScore[team] -= teamsLost.count(otherTeam)
-        
-        tied.sort(key=lambda x: -commonScore[x])
-        
+        def update_common_score(tied, df):
+            # Calculate head-to-head common score for each team
+            common_score = {team: 0 for team in tied}
+            for i, team in enumerate(tied):
+                teams_beat = df.loc[team, 'TeamsBeat'].split(';')
+                teams_lost = df.loc[team, 'TeamsLostTo'].split(';')
+                other_teams = tied[:i] + tied[i+1:]
+                for other_team in other_teams:
+                    common_score[team] += teams_beat.count(other_team)
+                    common_score[team] -= teams_lost.count(other_team)
+            return common_score
+
+        def apply_tie_breaker(tied, df, column, reverse=True):
+            # Apply tie breaker based on a specific column in the DataFrame
+            tied.sort(key=lambda x: -df.loc[x, column] if reverse else df.loc[x, column])
+            highest = tied[0]
+            return [team for team in tied if df.loc[team, column] == df.loc[highest, column]]
+
+        # Head-to-head tie breaker
+        common_score = update_common_score(tied, df)
+        tied.sort(key=lambda x: -common_score[x])
         highest = tied[0]
-        tied = [team for team in tied if commonScore[team] == commonScore[highest]]
+        tied = [team for team in tied if common_score[team] == common_score[highest]]
         if tiedOrig > len(tied):
             return self.divBreakTieHelper(tied, division, df)
-        
-        #Divisional Tie Breaker
-        tied.sort(key = lambda x: -df.loc[x, 'DivWins'])
-        highest = tied[0]
-        tied = [team for team in tied if commonScore[team] == commonScore[highest]]
+
+        # Divisional tie breaker
+        tied = apply_tie_breaker(tied, df, 'DivWins')
         if tiedOrig > len(tied):
             return self.divBreakTieHelper(tied, division, df)
-        
-        #Conference Tie Breaker
-        tied.sort(key = lambda x: -df.loc[x, 'ConfWins'])
-        highest = tied[0]
-        tied = [team for team in tied if commonScore[team] == commonScore[highest]]
+
+        # Conference tie breaker
+        tied = apply_tie_breaker(tied, df, 'ConfWins')
         if tiedOrig > len(tied):
             return self.divBreakTieHelper(tied, division, df)
-        
-        #Random at this point. Unlikely to affect projections early on, and plan 
-        #To add other tie breakers later on
+
+        # Random choice as a last resort
         return random.choice(tied)
+
+
 
     # Determines the division winner when there is a tie.
     # Parameters:
@@ -281,13 +285,10 @@ class Command(BaseCommand):
     # Returns:
     # - The name of the division-winning team.
     def divisionTieBreaker(self, division: list[str], df: pd.DataFrame) -> str:
-        firstPlace = division[0]
-        tiedForFirst = [firstPlace]
-        for team in division[1:]:
-            if df.loc[team, 'TotWins'] == df.loc[firstPlace, 'TotWins']:
-                tiedForFirst.append(team)
-        winner = self.divBreakTieHelper(tiedForFirst, division, df)
-        return winner
+        # Identify teams tied for first place based on total wins and break tie
+        tiedForFirst = [team for team in division if df.loc[team, 'TotWins'] == df.loc[division[0], 'TotWins']]
+        return self.divBreakTieHelper(tiedForFirst, division, df)
+
     
     # Finds ties within a list of teams.
     # Parameters:
@@ -296,74 +297,75 @@ class Command(BaseCommand):
     # - df: DataFrame containing tracking data.
     # - key: Function to use as the key for finding ties.
     # Returns:
-    # - A list of lists, each containing teams that are tied.
+    # - A list of lists, each containing groups of teams that are tied.
     def findTies(self, teams: list[str], isWildCard: bool, df: pd.DataFrame, key) -> list[list[str]]:
-        res = []
+        tied = []
         currTieList = [teams[0]]
         currWins = key(teams[0])
-        for i in range(1, len(teams)):
-            team = teams[i]
+
+        # Iterate over the remaining teams
+        for team in teams[1:]:
             if key(team) == currWins:
-                currTieList.append(team)
+                currTieList.append(team)  # If the current team has the same value, add to the current tie list
             else:
-                res.append(currTieList)
-                #Not tracking seeding if not in playoffs
-                if (i >= 3) and isWildCard: 
-                    return res
-                currWins = key(team)
-                currTieList = [team]
-        res.append(currTieList)
+                tied.append(currTieList)  # Otherwise, finalize the current tie list
+                if isWildCard and len(tied) >= 3:
+                    return tied  # If processing wildcard teams, stop after finding three tie groups
+                currTieList = [team] 
+                currWins = key(team)  # Update the win comparison value
 
-        return res
+        tied.append(currTieList)
+        return tied
 
-    # Finds ties within a list of teams.
+    # Resolves ties within a list of teams.
     # Parameters:
-    # - teams: List of teams.
-    # - isWildCard: Boolean indicating if the tie is for a wildcard spot.
+    # - tie: List of tied teams.
     # - df: DataFrame containing tracking data.
-    # - key: Function to use as the key for finding ties.
     # Returns:
-    # - A list of lists, each containing teams that are tied.
+    # - A list of teams in order after resolving ties.
     def resolveTies(self, tie: list[str], df: pd.DataFrame) -> list[str]:
-        ogLen = len(tie)
-        if ogLen == 1:
-            return tie
-        sweptIndex = -1
-        sweeperIndex = -1
-        for i in range(len(tie)):
-            team = tie[i]
-            teamsBeat = df.loc[team, 'TeamsBeat'].split(';')
-            teamsLost = df.loc[team, 'TeamsLostTo'].split(';')
-            otherTeams = tie[:i] + tie[i+1:]
-            swept = True
-            wasSwept = True
-            
-            for otherTeam in otherTeams:
-                if otherTeam not in teamsBeat or otherTeam in teamsLost:
-                    swept = False
-                if otherTeam in teamsBeat or otherTeam not in teamsLost:
-                    swept = True
-            
-            if swept:
-                sweeperIndex = i
-            if wasSwept:
-                sweptIndex = i
-        if sweeperIndex != -1 and sweptIndex != -1:
-            return [team[sweeperIndex]] + [team for i, team in enumerate(tie) if i not in {sweeperIndex, sweptIndex}] + [team[sweptIndex]]
-        if sweeperIndex != -1:
-            return [team[sweeperIndex]] + [team for i, team in enumerate(tie) if i == sweeperIndex]
-        if sweptIndex != -1:
-            return [team for i, team in enumerate(tie) if i == sweptIndex] + [team[sweptIndex]]
-        
-        tie.sort(key = lambda x: -df.loc[x, 'ConfWins'])
-        
-        newTies = self.findTies(tie, False, df, lambda x: df.loc[x, 'ConfWins'])
-        if len(newTies) == 1:
-            return random.sample(newTies[0], len(newTies[0]))
-        res = []
-        for tie in newTies:
-            res += self.resolveTies(tie)
-        return res
+        if len(tie) == 1:
+            return tie  # If there's only one team, return it immediately
+
+        def get_sweep_status(team, other_teams):
+            # Determine if a team has swept or was swept by all other teams
+            teams_beat = set(df.loc[team, 'TeamsBeat'].split(';'))
+            teams_lost = set(df.loc[team, 'TeamsLostTo'].split(';'))
+            swept = all(other in teams_beat and other not in teams_lost for other in other_teams)
+            was_swept = all(other not in teams_beat and other in teams_lost for other in other_teams)
+            return swept, was_swept
+
+        sweeper, swept = None, None
+        for team in tie:
+            other_teams = [t for t in tie if t != team]
+            swept_status, was_swept_status = get_sweep_status(team, other_teams)
+            if swept_status:
+                sweeper = team  # Mark the team as a sweeper if it swept all others
+            if was_swept_status:
+                swept = team  # Mark the team as swept if it was swept by all others
+
+        if sweeper and swept:
+            # If both a sweeper and swept team exist, return the ordered list with them at the ends
+            return [sweeper] + [t for t in tie if t not in {sweeper, swept}] + [swept]
+        if sweeper:
+            # If only a sweeper exists, return it first
+            return [sweeper] + [t for t in tie if t != sweeper]
+        if swept:
+            # If only a swept team exists, return it last
+            return [t for t in tie if t != swept] + [swept]
+
+        # Sort tied teams based on conference wins
+        tie.sort(key=lambda x: -df.loc[x, 'ConfWins'])
+        # Find new ties based on conference wins
+        new_ties = self.findTies(tie, False, df, lambda x: df.loc[x, 'ConfWins'])
+
+        if len(new_ties) == 1:
+            # If only one tie group is found, shuffle and return it
+            return random.sample(new_ties[0], len(new_ties[0]))
+
+        # Recursively resolve ties for each subgroup and combine results
+        return [team for sub_tie in new_ties for team in self.resolveTies(sub_tie, df)]
+
                 
                 
     # Finds ties within a list of teams.
@@ -375,22 +377,22 @@ class Command(BaseCommand):
     # Returns:
     # - A list of lists, each containing teams that are tied.
     def seed(self, teams: list[str], df: pd.DataFrame, isWildCard: bool) -> list[str]:
-
+        # Identify tie groups based on total wins
         tieList = self.findTies(teams, isWildCard, df, lambda x: df.loc[x, 'TotWins'])
-        newList = []
-        for tie in tieList:
-            tie = self.resolveTies(tie, df)
-        for tie in tieList:
-            newList += tie
-            
-        if isWildCard:
-            shift = 5
-        else:
-            shift = 1
-        for i, team in enumerate(newList):
-            df.loc[team, 'Seed'] = i +shift
         
-        return newList 
+        newList = []
+        # Resolve ties within each tie group
+        for tie in tieList:
+            newList += self.resolveTies(tie, df)
+        
+        # Determine the seed shift based on whether it's a wildcard seeding
+        shift = 5 if isWildCard else 1
+        
+        # Assign seeds to teams
+        for i, team in enumerate(newList):
+            df.loc[team, 'Seed'] = i + shift
+        
+        return newList
     
     # Simulates a round of the playoffs.
     # Parameters:
@@ -399,43 +401,44 @@ class Command(BaseCommand):
     # - round: Integer indicating the current playoff round.
     # - roundDict: Dictionary mapping round numbers to round names.
     def simRound(self, playoffs: dict, df: pd.DataFrame, round: int, roundDict: dict) -> None:
+        # Determine the matchups based on the round
         if round == 0:
-            beginning = 1
-            end = 4
-        if round == 1:
-            beginning = 0
-            end = 2
+            matchups = [(2, 7), (3, 6), (4, 5)]
         else:
-            beginning = 0
-            end = 1
-        totalTeams = (beginning - end) * 2
-        
-        seeds = sorted(list(playoffs.keys()))
-        for i in range(beginning, end):
-            offBye = i == 0 and round == 2
-            HigherSeed = seeds[i]
-            j = -1-i
-            LowerSeed = seeds[j]
-            Home = NFLTeam.objects.get(name=playoffs[HigherSeed])
-            Away = NFLTeam.objects.get(name=playoffs[LowerSeed])
-            homeOdds = self.getPlayoffOddsStandard(Home, Away, df, offBye)
-            Home = playoffs[HigherSeed]
-            Away = playoffs[LowerSeed]
+            seeds = list(playoffs.keys())
+            matchups = [(seeds[i], seeds[-(i + 1)]) for i in range(len(seeds) // 2)]
+
+        # Iterate over the matchups in the current round
+        for higherSeed, lowerSeed in matchups:
+
+            offBye = (higherSeed == 1 and round == 1)  # Determine if the higher seed has a bye
+
+            # Get the home and away teams based on their seeds
+            homeTeam = NFLTeam.objects.get(name=playoffs[higherSeed])
+            awayTeam = NFLTeam.objects.get(name=playoffs[lowerSeed])
+
+            # Calculate the home team's odds of winning
+            homeOdds = self.getPlayoffOddsStandard(homeTeam, awayTeam, df, offBye)
+
+            # Simulate the game result
             randVar = self.gameResults[self.currGame]
             self.currGame += 1
-            if randVar < homeOdds:
-                winner = Home
-                loser = Away
-                losingSeed = LowerSeed
-                winningOdds = homeOdds
-            else:
-                winner = Away
-                loser = Home
-                losingSeed = HigherSeed
-                winningOdds = 1 - homeOdds
-            self.adjustElo(winner, loser, winningOdds, self.kFactor, df)
-            df.loc[winner, 'Playoff Round'] = roundDict[round]
-            del playoffs[losingSeed]
+
+            # Determine the winner and loser
+            winner, loser, winningOdds = (higherSeed, lowerSeed, homeOdds) if randVar < homeOdds else (lowerSeed, higherSeed, 1 - homeOdds)
+
+            print(f"{playoffs[winner]} beat {playoffs[loser]} in round {round}")
+
+            # Adjust ELO ratings based on the game result
+            self.adjustElo(playoffs[winner], playoffs[loser], winningOdds, self.kFactor, df)
+
+            # Update the DataFrame to reflect the playoff round for the winner
+            df.loc[playoffs[winner], 'Playoff Round'] = roundDict[round]
+
+            # Remove the losing team from the playoffs
+            del playoffs[loser]
+
+
             
     # Simulates a round of the playoffs.
     # Parameters:
@@ -445,8 +448,11 @@ class Command(BaseCommand):
     # - roundDict: Dictionary mapping round numbers to round names.
     def simPlayoffs(self, playoffs: dict, df: pd.DataFrame):
         roundDict = {0: 'Divisional', 1: 'Conference', 2: 'Super Bowl'}
+        print(playoffs)
         self.simRound(playoffs, df, 0, roundDict)
+        print(playoffs)
         self.simRound(playoffs, df, 1, roundDict)
+        print(playoffs)
         self.simRound(playoffs, df, 2, roundDict)
     
     
@@ -471,6 +477,8 @@ class Command(BaseCommand):
         # Adjust ELO ratings and update DF to reflect champion
         self.adjustElo(winner, loser, winnerOdds, self.kFactor, df)
         df.loc[winner, 'Playoff Round'] = "Super Bowl Champ"
+
+        print(f"{winner} beat {loser} in the SuperBowl")
 
         return winner
     
@@ -594,6 +602,8 @@ class Command(BaseCommand):
         self.simPlayoffs(AFCPlayoffs, self.trackerDF)
         champs = self.simSuperBowl(NFCPlayoffs, AFCPlayoffs, self.trackerDF)
         self.resultsDF.loc[champs, 'SuperBowl'] += 1
+
+        print(self.trackerDF.sort_values(by='Seed'))
 
         # Update results DataFrame with division championships and top seeds
         for team in self.teams:
