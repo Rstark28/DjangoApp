@@ -90,6 +90,8 @@ class Projection(models.Model):
     wonConference = models.IntegerField()
     wonSuperBowl = models.IntegerField()
     stdv = models.FloatField()
+    firstquartile = models.FloatField()
+    thirdquartile= models.FloatField()
     currWeek = models.IntegerField(default = 0)
     
     

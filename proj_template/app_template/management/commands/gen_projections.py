@@ -99,16 +99,18 @@ class Command(BaseCommand):
     # Parameters:
     # - args, kwargs.
     def handle(self, *args, **kwargs):
-
+        #Resets Projections For Now. Will Remove later to store historical projections
+        Projection.objects.all().delete()
+        
         # Number of simulations to run
         numSeasons = kwargs['num']
 
         # Create a DataFrame to store results with specified columns
-        self.resultsDF = pd.DataFrame(columns=['Team', 'Playoffs', 'SuperBowl', 'DivChamps', '1Seed', 'Mean', 'Median', '25', '75', 'stdev'])
+        self.resultsDF = pd.DataFrame(columns=['Team', 'Playoffs', 'WonConference', 'SuperBowl', 'DivChamps', '1Seed', 'Mean', 'Median', '25', '75', 'stdev'])
 
         # Initialize results DataFrame with team names and zero values
         for team in self.teams:
-            self.resultsDF.loc[team.name] = [team.name, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+            self.resultsDF.loc[team.name] = [team.name, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
         # Initialize a dictionary to store results for each team
         self.resultDict = {team.name: [] for team in self.teams} 
@@ -127,11 +129,18 @@ class Command(BaseCommand):
             self.resultsDF.loc[team, '75'] = np.percentile(self.resultDict[team], 75)
             self.resultsDF.loc[team, 'stdev'] = np.std(self.resultDict[team])
             
-            '''Projection.objects.create(Team=self.teams.get(name=team), 
+            Projection.objects.create(team=self.teams.get(name=team), 
                                       n= numSeasons,
                                       mean=float(self.resultsDF.loc[team, 'Mean']),
                                       median = float(self.resultsDF.loc[team, 'Median'] ),
-                                      madePlayoffs=self.resultsDF)'''
+                                      madePlayoffs=self.resultsDF.loc[team, 'Playoffs'],
+                                      wonDivision=self.resultsDF.loc[team, 'DivChamps'],
+                                      wonConference=self.resultsDF.loc[team, 'WonConference'],
+                                      wonSuperBowl=self.resultsDF.loc[team, 'SuperBowl'],
+                                      stdv=self.resultsDF.loc[team, 'stdev'],
+                                      firstquartile = self.resultsDF.loc[team, '25'],
+                                      thirdquartile = self.resultsDF.loc[team, '75']
+                                      )
             
 
         # Save results to CSV file
@@ -477,7 +486,8 @@ class Command(BaseCommand):
         # Get AFC and NFC champions
         AFCChamp = NFLTeam.objects.get(name=list(AFC.values())[0])
         NFCChamp = NFLTeam.objects.get(name=list(NFC.values())[0])
-
+        self.resultsDF.loc[AFCChamp.name, 'WonConference'] += 1
+        self.resultsDF.loc[NFCChamp.name, 'WonConference'] += 1
         # Simulate the SuperBowl
         NFCOdds = self.getPlayoffOddsStandard(NFCChamp, AFCChamp, df, False, isSuperBowl=True)
         outcome = self.gameResults[self.currGame]
@@ -609,6 +619,7 @@ class Command(BaseCommand):
         # Simulate playoffs and Super Bowl
         self.simPlayoffs(NFCPlayoffs, self.trackerDF)
         self.simPlayoffs(AFCPlayoffs, self.trackerDF)
+        
         champs = self.simSuperBowl(NFCPlayoffs, AFCPlayoffs, self.trackerDF)
         self.resultsDF.loc[champs, 'SuperBowl'] += 1
 
