@@ -133,23 +133,23 @@ class Command(BaseCommand):
 
         # Calculate and store statistics in results DataFrame
         for team in self.resultDict:
-            self.resultsDF.loc[team, 'Mean'] = np.mean(self.resultDict[team])
-            self.resultsDF.loc[team, 'Median'] = np.median(self.resultDict[team])
-            self.resultsDF.loc[team, '25'] = np.percentile(self.resultDict[team], 25)
-            self.resultsDF.loc[team, '75'] = np.percentile(self.resultDict[team], 75)
-            self.resultsDF.loc[team, 'stdev'] = np.std(self.resultDict[team])
+            self.resultsDF.at[team, 'Mean'] = np.mean(self.resultDict[team])
+            self.resultsDF.at[team, 'Median'] = np.median(self.resultDict[team])
+            self.resultsDF.at[team, '25'] = np.percentile(self.resultDict[team], 25)
+            self.resultsDF.at[team, '75'] = np.percentile(self.resultDict[team], 75)
+            self.resultsDF.at[team, 'stdev'] = np.std(self.resultDict[team])
             
             Projection.objects.create(team=self.teams.get(name=team), 
                                       n= numSeasons,
-                                      mean=float(self.resultsDF.loc[team, 'Mean']),
-                                      median = float(self.resultsDF.loc[team, 'Median'] ),
-                                      madePlayoffs=self.resultsDF.loc[team, 'Playoffs'],
-                                      wonDivision=self.resultsDF.loc[team, 'DivChamps'],
-                                      wonConference=self.resultsDF.loc[team, 'WonConference'],
-                                      wonSuperBowl=self.resultsDF.loc[team, 'SuperBowl'],
-                                      stdv=self.resultsDF.loc[team, 'stdev'],
-                                      firstquartile = self.resultsDF.loc[team, '25'],
-                                      thirdquartile = self.resultsDF.loc[team, '75'],
+                                      mean=float(self.resultsDF.at[team, 'Mean']),
+                                      median = float(self.resultsDF.at[team, 'Median'] ),
+                                      madePlayoffs=self.resultsDF.at[team, 'Playoffs'],
+                                      wonDivision=self.resultsDF.at[team, 'DivChamps'],
+                                      wonConference=self.resultsDF.at[team, 'WonConference'],
+                                      wonSuperBowl=self.resultsDF.at[team, 'SuperBowl'],
+                                      stdv=self.resultsDF.at[team, 'stdev'],
+                                      firstquartile = self.resultsDF.at[team, '25'],
+                                      thirdquartile = self.resultsDF.at[team, '75'],
                                       currWeek = self.currWeek
                                       )
             
@@ -238,14 +238,14 @@ class Command(BaseCommand):
     # - df: DataFrame containing tracking data.
     def addWin(self, winner: str, loser: str) -> None:
 
-        self.trackerDF.loc[winner, 'TotWins'] +=  1 
+        self.trackerDF.at[winner, 'TotWins'] +=  1 
 
-        if self.trackerDF.loc[winner, 'Division'] == self.trackerDF.loc[loser, 'Division']:
-            self.trackerDF.loc[winner, 'DivWins'] += 1
-            self.trackerDF.loc[winner, 'ConfWins'] += 1
+        if self.trackerDF.at[winner, 'Division'] == self.trackerDF.at[loser, 'Division']:
+            self.trackerDF.at[winner, 'DivWins'] += 1
+            self.trackerDF.at[winner, 'ConfWins'] += 1
 
-        elif self.trackerDF.loc[winner, 'Conference'] == self.trackerDF.loc[loser, 'Conference']:
-            self.trackerDF.loc[winner, 'ConfWins'] += 1
+        elif self.trackerDF.at[winner, 'Conference'] == self.trackerDF.at[loser, 'Conference']:
+            self.trackerDF.at[winner, 'ConfWins'] += 1
 
         self.trackerDF.at[winner, 'TeamsBeat'] = f"{self.trackerDF.at[winner, 'TeamsBeat']};{loser}".strip(';')
         self.trackerDF.at[loser, 'TeamsLostTo'] = f"{self.trackerDF.at[loser, 'TeamsLostTo']};{winner}".strip(';')
@@ -313,7 +313,7 @@ class Command(BaseCommand):
     # - The name of the division-winning team.
     def divisionTieBreaker(self, division: list[str]) -> str:
         # Identify teams tied for first place based on total wins and break tie
-        tiedForFirst = [team for team in division if self.trackerDF.loc[team, 'TotWins'] == self.trackerDF.loc[division[0], 'TotWins']]
+        tiedForFirst = [team for team in division if self.trackerDF.at[team, 'TotWins'] == self.trackerDF.at[division[0], 'TotWins']]
         return self.divBreakTieHelper(tiedForFirst, division)
 
     
@@ -358,8 +358,8 @@ class Command(BaseCommand):
 
         def get_sweep_status(team: str, other_teams: list[str]) -> tuple[bool, bool]:
             # Determine if a team has swept or was swept by all other teams
-            teams_beat = set(self.trackerDF.loc[team, 'TeamsBeat'].split(';'))
-            teams_lost = set(self.trackerDF.loc[team, 'TeamsLostTo'].split(';'))
+            teams_beat = set(self.trackerDF.at[team, 'TeamsBeat'].split(';'))
+            teams_lost = set(self.trackerDF.at[team, 'TeamsLostTo'].split(';'))
             swept = all(other in teams_beat and other not in teams_lost for other in other_teams)
             was_swept = all(other not in teams_beat and other in teams_lost for other in other_teams)
             return swept, was_swept
@@ -384,9 +384,9 @@ class Command(BaseCommand):
             return [t for t in tie if t != swept] + [swept]
 
         # Sort tied teams based on conference wins
-        tie.sort(key=lambda x: -self.trackerDF.loc[x, 'ConfWins'])
+        tie.sort(key=lambda x: -self.trackerDF.at[x, 'ConfWins'])
         # Find new ties based on conference wins
-        new_ties = self.findTies(tie, False, lambda x: self.trackerDF.loc[x, 'ConfWins'])
+        new_ties = self.findTies(tie, False, lambda x: self.trackerDF.at[x, 'ConfWins'])
 
         if len(new_ties) == 1:
             # If only one tie group is found, shuffle and return it
@@ -407,7 +407,7 @@ class Command(BaseCommand):
     # - A list of lists, each containing teams that are tied.
     def seed(self, teams: list[str], isWildCard: bool) -> list[str]:
         # Identify tie groups based on total wins
-        tieList = self.findTies(teams, isWildCard, lambda x: self.trackerDF.loc[x, 'TotWins'])
+        tieList = self.findTies(teams, isWildCard, lambda x: self.trackerDF.at[x, 'TotWins'])
         
         newList = []
         # Resolve ties within each tie group
@@ -419,7 +419,7 @@ class Command(BaseCommand):
         
         # Assign seeds to teams
         for i, team in enumerate(newList):
-            self.trackerDF.loc[team, 'Seed'] = i + shift
+            self.trackerDF.at[team, 'Seed'] = i + shift
         
         return newList
     
@@ -462,7 +462,7 @@ class Command(BaseCommand):
             self.adjustElo(playoffs[winner], playoffs[loser], winningOdds, self.kFactor)
 
             # Update the DataFrame to reflect the playoff round for the winner
-            self.trackerDF.loc[playoffs[winner], 'Playoff Round'] = roundDict[round]
+            self.trackerDF.at[playoffs[winner], 'Playoff Round'] = roundDict[round]
 
             # Remove the losing team from the playoffs
             del playoffs[loser]
@@ -497,8 +497,8 @@ class Command(BaseCommand):
         # Get AFC and NFC champions
         AFCChamp = NFLTeam.objects.get(name=list(AFC.values())[0])
         NFCChamp = NFLTeam.objects.get(name=list(NFC.values())[0])
-        self.resultsDF.loc[AFCChamp.name, 'WonConference'] += 1
-        self.resultsDF.loc[NFCChamp.name, 'WonConference'] += 1
+        self.resultsDF.at[AFCChamp.name, 'WonConference'] += 1
+        self.resultsDF.at[NFCChamp.name, 'WonConference'] += 1
         # Simulate the SuperBowl
         NFCOdds = self.getPlayoffOddsStandard(NFCChamp, AFCChamp, False, isSuperBowl=True)
         outcome = self.gameResults[self.currGame]
@@ -506,7 +506,7 @@ class Command(BaseCommand):
         winnerOdds = NFCOdds if outcome < NFCOdds else 1 - NFCOdds
         # Adjust ELO ratings and update DF to reflect champion
         self.adjustElo(winner, loser, winnerOdds, self.kFactor)
-        self.trackerDF.loc[winner, 'Playoff Round'] = "Super Bowl Champ"
+        self.trackerDF.at[winner, 'Playoff Round'] = "Super Bowl Champ"
 
         print(f"{winner} beat {loser} in the SuperBowl")
 
@@ -521,8 +521,8 @@ class Command(BaseCommand):
     # - df: DataFrame containing tracking data.
     def adjustElo(self, winner: str, loser: str, winnerOdds: float, kFactor: float) -> None:
         eloChange = (1 - winnerOdds) * kFactor
-        self.trackerDF.loc[winner, 'Elo'] += eloChange
-        self.trackerDF.loc[loser, 'Elo'] -= eloChange
+        self.trackerDF.at[winner, 'Elo'] += eloChange
+        self.trackerDF.at[loser, 'Elo'] -= eloChange
 
     # Sets the season tracker for all teams.
     # Initializes the trackerDF DataFrame with initial team data.
@@ -585,11 +585,11 @@ class Command(BaseCommand):
 
         # Determine division winners
         for division in self.AllDivisions:
-            division.sort(key=lambda x: -self.trackerDF.loc[x, 'TotWins'])
+            division.sort(key=lambda x: -self.trackerDF.at[x, 'TotWins'])
             divisionChamp = self.divisionTieBreaker(division)
-            self.trackerDF.loc[divisionChamp, 'Seed'] = 1
+            self.trackerDF.at[divisionChamp, 'Seed'] = 1
 
-            if (self.trackerDF.loc[divisionChamp, 'Division'].split())[0] == 'AFC':
+            if (self.trackerDF.at[divisionChamp, 'Division'].split())[0] == 'AFC':
                 AFCDivisionWinners.append(divisionChamp)
             else:
                 NFCDivisionWinners.append(divisionChamp)
@@ -598,10 +598,10 @@ class Command(BaseCommand):
         AFCWildcard = list(set(self.AFC) - set(AFCDivisionWinners))
         NFCWildcard = list(set(self.NFC) - set(NFCDivisionWinners))
         
-        AFCWildcard.sort(key = lambda x: -self.trackerDF.loc[x, 'TotWins'])
-        NFCWildcard.sort(key = lambda x: -self.trackerDF.loc[x, 'TotWins'])
-        AFCDivisionWinners.sort(key = lambda x: -self.trackerDF.loc[x, 'TotWins'])
-        NFCDivisionWinners.sort(key = lambda x: -self.trackerDF.loc[x, 'TotWins'])
+        AFCWildcard.sort(key = lambda x: -self.trackerDF.at[x, 'TotWins'])
+        NFCWildcard.sort(key = lambda x: -self.trackerDF.at[x, 'TotWins'])
+        AFCDivisionWinners.sort(key = lambda x: -self.trackerDF.at[x, 'TotWins'])
+        NFCDivisionWinners.sort(key = lambda x: -self.trackerDF.at[x, 'TotWins'])
 
         AFCWildcard = self.seed(AFCWildcard, True)[:3]
         NFCWildcard = self.seed(NFCWildcard, True)[:3]
@@ -621,31 +621,31 @@ class Command(BaseCommand):
         # Assign playoff rounds
         for seed in range(1, 8):
             if seed == 1:
-                self.trackerDF.loc[AFCPlayoffs[seed], 'Playoff Round'] = 'Divisional'
-                self.trackerDF.loc[NFCPlayoffs[seed], 'Playoff Round'] = 'Divisional'
+                self.trackerDF.at[AFCPlayoffs[seed], 'Playoff Round'] = 'Divisional'
+                self.trackerDF.at[NFCPlayoffs[seed], 'Playoff Round'] = 'Divisional'
             else:
-                self.trackerDF.loc[AFCPlayoffs[seed], 'Playoff Round'] = 'Wildcard'
-                self.trackerDF.loc[NFCPlayoffs[seed], 'Playoff Round'] = 'Wildcard'
+                self.trackerDF.at[AFCPlayoffs[seed], 'Playoff Round'] = 'Wildcard'
+                self.trackerDF.at[NFCPlayoffs[seed], 'Playoff Round'] = 'Wildcard'
         
         # Simulate playoffs and Super Bowl
         self.simPlayoffs(NFCPlayoffs)
         self.simPlayoffs(AFCPlayoffs)
         
         champs = self.simSuperBowl(NFCPlayoffs, AFCPlayoffs)
-        self.resultsDF.loc[champs, 'SuperBowl'] += 1
+        self.resultsDF.at[champs, 'SuperBowl'] += 1
 
         print(self.trackerDF.sort_values(by='Seed'))
 
         # Update results DataFrame with division championships and top seeds
         for team in self.teams:
             teamName = team.name
-            if self.trackerDF.loc[teamName, 'Seed'] <= 4 and self.trackerDF.loc[teamName, 'Seed'] != -1:
-                self.resultsDF.loc[teamName, 'DivChamps'] += 1
-            if self.trackerDF.loc[teamName, 'Seed'] == 1:
-                self.resultsDF.loc[teamName, '1Seed'] += 1
-            if self.trackerDF.loc[teamName, 'Seed'] <= 7 and self.trackerDF.loc[teamName, 'Seed'] != -1:
-                self.resultsDF.loc[teamName, 'Playoffs'] += 1
-            self.resultDict[teamName].append(self.trackerDF.loc[teamName, 'TotWins'])
+            if self.trackerDF.at[teamName, 'Seed'] <= 4 and self.trackerDF.at[teamName, 'Seed'] != -1:
+                self.resultsDF.at[teamName, 'DivChamps'] += 1
+            if self.trackerDF.at[teamName, 'Seed'] == 1:
+                self.resultsDF.at[teamName, '1Seed'] += 1
+            if self.trackerDF.at[teamName, 'Seed'] <= 7 and self.trackerDF.at[teamName, 'Seed'] != -1:
+                self.resultsDF.at[teamName, 'Playoffs'] += 1
+            self.resultDict[teamName].append(self.trackerDF.at[teamName, 'TotWins'])
 
         end_time = time.time()
         elapsed_time = end_time - start_time
