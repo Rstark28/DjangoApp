@@ -28,7 +28,7 @@
 <script src="https://code.highcharts.com/highcharts.js"></script>
 <script src="https://code.highcharts.com/modules/exporting.js"></script>
 <script>
-    
+
     document.addEventListener('DOMContentLoaded', function () {
         Highcharts.chart('container', {
             chart: {
@@ -39,14 +39,24 @@
                 text: 'Elo Scores Over Time'
             },
             xAxis: {
-                type: 'datetime',
+                type: 'category',
                 title: {
-                    text: 'Date'
+                    text: 'Game Number'
                 },
+                categories: [
+                    {% for game in historical_games %}
+                        '{{ game.date }}',
+                    {% endfor %}
+                ]
             },
             yAxis: {
                 title: {
                     text: 'Elo Score'
+                }
+            },
+            tooltip: {
+                formatter: function () {
+                    return 'Need to fix'
                 }
             },
             series: [{
@@ -60,7 +70,7 @@
                 },
                 data: [
                     {% for game in historical_games %}
-                        [Date.parse('{{ game.date }}'), {{ game.elo1_post }}],
+                        {{ game.elo1_post }},
                     {% endfor %}
                 ]
             }],

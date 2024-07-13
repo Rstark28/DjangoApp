@@ -15,9 +15,9 @@
     <link rel="stylesheet" href="{% static 'app_template/main.css' %}">
 
     {% if title %}
-    <title>Django app_template - {{ title }}</title>
+        <title>Django app_template - {{ title }}</title>
     {% else %}
-    <title>Django app_template</title>
+        <title>Django app_template</title>
     {% endif %}
 </head>
 
@@ -34,6 +34,9 @@
                 <ul class="navbar-nav me-auto mb-2 mb-md-0">
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'app_template.home' %}">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'app_template.live_projections' %}">Live Projections</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'app_template.historical_data' %}">Historical Data</a>

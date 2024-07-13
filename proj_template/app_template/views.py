@@ -37,6 +37,15 @@ def historical_data(request):
     }
     return render(request, 'app_template/historical_data.html', context)
 
+# name:       live_projections
+# purpose:    Renders the live projections page.
+# parameters:
+# request:    HttpRequest object
+# returns:    HttpResponse object rendering 'app_template/live_projections.html'
+def live_projections(request):
+    context = {}
+    return render(request, 'app_template/live_projections.html', context)
+
 # name:       register
 # purpose:    Handles user registration.
 # parameters:
