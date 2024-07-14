@@ -4,7 +4,7 @@ from django.contrib.auth.views import PasswordResetView
 from django.contrib.auth import authenticate, login as auth_login, logout
 from django.shortcuts import render, redirect, get_object_or_404
 from .forms import CreateUserForm, CustomPasswordResetForm
-from .models import NFLTeam
+from .models import NFLTeam, Projection
 from django.http import HttpRequest, HttpResponse
 
 # name:       home
@@ -43,7 +43,28 @@ def historical_data(request):
 # request:    HttpRequest object
 # returns:    HttpResponse object rendering 'app_template/live_projections.html'
 def live_projections(request):
-    context = {}
+    sort_by = request.GET.get('sort_by', 'team__name')  # Default sorting by team name
+    valid_sort_fields = ['team__name', '-team__elo', '-madePlayoffs', '-wonDivision', '-wonConference', '-wonSuperBowl']
+
+    if sort_by not in valid_sort_fields:
+        sort_by = 'team__name'  # Fallback to default if invalid sorting field is provided
+
+    
+    projections = Projection.objects.select_related('team')
+    
+    
+    for projection in projections:
+        projection.win_division_percentage = (projection.wonDivision / projection.n) * 100
+        projection.win_conference_percentage = (projection.wonConference / projection.n) * 100
+        projection.win_super_bowl_percentage = (projection.wonSuperBowl / projection.n) * 100
+        
+    
+    
+    projections = projections.order_by(sort_by)
+    
+    context = {
+        'projections': projections
+    }
     return render(request, 'app_template/live_projections.html', context)
 
 # name:       register

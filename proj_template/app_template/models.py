@@ -93,6 +93,8 @@ class Projection(models.Model):
     firstquartile = models.FloatField()
     thirdquartile= models.FloatField()
     currWeek = models.IntegerField(default = 0)
+    playoffPercent = models.FloatField()
+    divisionPercent = models.FloatField()
     
     
     def __str__(self):
