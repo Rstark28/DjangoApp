@@ -66,6 +66,10 @@ class UpcomingGames(models.Model):
     isComplete = models.BooleanField()
     homeScore = models.IntegerField()
     awayScore = models.IntegerField()
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    isCustom = models.BooleanField()
+    isPicked = models.BooleanField()
+    teamPicked = models.ForeignKey(NFLTeam, on_delete=models.CASCADE)   
     def __str__(self):
         return f"{self.date} - {self.awayTeam} @ {self.homeTeam}"
 
@@ -93,8 +97,10 @@ class Projection(models.Model):
     firstquartile = models.FloatField()
     thirdquartile= models.FloatField()
     currWeek = models.IntegerField(default = 0)
-    playoffPercent = models.FloatField()
-    divisionPercent = models.FloatField()
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    isCustom = models.BooleanField()
+
+    
     
     
     def __str__(self):
