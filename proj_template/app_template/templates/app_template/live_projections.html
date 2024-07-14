@@ -1,38 +1,67 @@
-
 {% extends "app_template/base.html" %}
 {% block content %}
-
-
 <div class="container mt-5">
     <h2 class="mb-4">NFL Projections Table</h2>
-    <table class="table table-bordered">
-        <thead class="thead-light">
-            <tr>
-                <th><a href="?sort_by=team__name">Team Name</a></th>
-                <th><a href="?sort_by=-team__elo">Elo</a></th>
-                <th><a href="?sort_by=-madePlayoffs">Make Playoffs</a></th>
-                <th><a href="?sort_by=-wonDivision">Win Division</a></th>
-                <th><a href="?sort_by=-wonConference">Win Conference</a></th>
-                <th><a href="?sort_by=-wonSuperBowl">Win Super Bowl</a></th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for projection in projections %}
-            <tr>
-                
-                <td>{{ projection.team.name }}</td>
-                <td>{{ projection.team.elo }}</td>
-                <td>{{ projection.madePlayoffs}}%</td>
-                <td>{{ projection.wonDivision }}%</td>
-                <td>{{ projection.wonConference }}%</td>
-                <td>{{ projection.wonSuperBowl }}%</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <form id="projectionForm" method="post" action="{% url 'app_template.live_projections' %}">
+        {% csrf_token %}
+        <table class="table table-bordered">
+            <thead class="thead-light">
+                <tr>
+                    <th><a href="?sort_by=team__name">Team Name</a></th>
+                    <th><a href="?sort_by=-team__elo">Elo</a></th>
+                    <th><a href="?sort_by=-madePlayoffs">Make Playoffs</a></th>
+                    <th><a href="?sort_by=-wonDivision">Win Division</a></th>
+                    <th><a href="?sort_by=-wonConference">Win Conference</a></th>
+                    <th><a href="?sort_by=-wonSuperBowl">Win Super Bowl</a></th>
+                    <th>Week 1</th>
+                    <th>Week 2</th>
+                    <th>Week 3</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for projection in projections %}
+                <tr>
+                    <td>{{ projection.team.name }}</td>
+                    <td>{{ projection.team.elo }}</td>
+                    <td>{{ projection.madePlayoffs }}%</td>
+                    <td>{{ projection.wonDivision }}%</td>
+                    <td>{{ projection.wonConference }}%</td>
+                    <td>{{ projection.wonSuperBowl }}%</td>
+                    <td><input type="checkbox" name="week1" value="{{ projection.team.name }}-1"></td>
+                    <td><input type="checkbox" name="week2" value="{{ projection.team.name }}-2"></td>
+                    <td><input type="checkbox" name="week3" value="{{ projection.team.name }}-3"></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <button type="submit" class="btn btn-primary">Update Projections</button>
+    </form>
 </div>
 
 <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+<script>
+    // Optional: You can use JavaScript to handle form submission
+    $('#projectionForm').submit(function(event) {
+        event.preventDefault(); // Prevent default form submission
+
+        // Optional: Perform any additional client-side validation or actions
+
+        // Submit the form via AJAX
+        $.ajax({
+            url: $(this).attr('action'),
+            type: $(this).attr('method'),
+            data: $(this).serialize(), // Serialize form data
+            success: function(response) {
+                // Handle success response if needed
+                console.log('Projections updated successfully');
+            },
+            error: function(xhr, errmsg, err) {
+                // Handle error response if needed
+                console.log('Error updating projections');
+            }
+        });
+    });
+</script>
 {% endblock content %}
