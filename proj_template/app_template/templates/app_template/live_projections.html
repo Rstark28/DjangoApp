@@ -2,6 +2,7 @@
 {% block content %}
 <div class="container mt-5">
     <h2 class="mb-4">NFL Projections Table</h2>
+    <h2>{{test}}</h2>
     <form id="projectionForm" method="post" action="{% url 'app_template.live_projections' %}">
         {% csrf_token %}
         <table class="table table-bordered">

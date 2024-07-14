@@ -60,13 +60,32 @@ def live_projections(request):
     allProjections = Projection.objects.select_related('team')
     
     
+    
     adminUser = User.objects.get(username='admin')
     baseProjections = allProjections.filter(user = adminUser)
     userGames = allGames.filter(user = request.user, isPicked=True)
     userProjections = allProjections.filter(user=request.user)
     baseGames = allGames.filter(user = adminUser)
+    if len(userGames) == 0:
+        #Creates copies of all of the admin games if the user has no games
+        for game in baseGames:
+            userGame = copy.copy(game)
+            userGame.id = None
+            userGame.user = request.user
+            userGame.save()
+        userGames = allGames.filter(user = request.user)
+    if len(userProjections) == 0:
+        #Generates Database for user projections
+        for projection in baseProjections:
+            userPorjection = copy.copy(projection)
+            userPorjection.id = None
+            userPorjection.user = request.user
+            userPorjection.save()
+        userProjections = allProjections.filter(user=request.user)
+
     
     if len(all_projections) == 0:
+        picked = 'No'
         projections = baseProjections
         genProjections = False
         for game in userGames:
@@ -74,33 +93,21 @@ def live_projections(request):
             game.save()
     else:
         #Creates set from current picks to see if the projection needs to be updated
-        userPicks = {f"{game.teamPicked.name}-{game.week}" for game in userGames}
+        picked = 'Yes'
+        
+        
+        userPicks = {f"{game.teamPicked.name}-{game.week}" for game in userGames.filter(isPicked=True)}
         genProjections = (userPicks != projectionSet)
+        projections = userProjections #Placeholder line
     
     if genProjections:
-        if len(userGames) == 0:
-            #Creates copies of all of the admin games if the user has no games
-            for game in baseGames:
-                userGame = copy.copy(game)
-                userGame.id = None
-                userGame.user = request.user
-                userGame.save()
-            userGames = allGames.filter(user = request.user)
-        if len(userProjections) == 0:
-            #Generates Database for user projections
-            for projection in baseProjections:
-                userPorjection = copy.copy(projection)
-                userPorjection.id = None
-                userPorjection.user = request.user
-                userPorjection.save()
-            userProjections = allProjections.filter(user=request.user)
         #Note: These sets are full of strings, not the actual game objects
         gamesToUndo = userPicks - projectionSet
         gamesToDo = projectionSet - userPicks
         
         
         for game in gamesToUndo:
-            seperatorIndex = game.find['-']
+            seperatorIndex = game.find('-')
             gameTeamStr = game[:seperatorIndex]
             gameTeam = AllTeams.get(name=gameTeamStr)
             gameWeek = game[seperatorIndex+1:]
@@ -109,7 +116,7 @@ def live_projections(request):
             gameObject.save()
             
         for game in gamesToDo:
-            seperatorIndex = game.find['-']
+            seperatorIndex = game.find('-')
             gameTeamStr = game[:seperatorIndex]
             gameTeam = AllTeams.get(name=gameTeamStr)
             gameWeek = game[seperatorIndex+1:]
@@ -126,6 +133,7 @@ def live_projections(request):
                 gameToChange.teamPicked = gameTeam
                 gameToChange.save()
         #TODO Use this schedule to gen projections
+        projection = userProjections #Placeholder for site not to crash
     
     
     sort_by = request.GET.get('sort_by', 'team__name')  # Default sorting by team name
@@ -139,7 +147,8 @@ def live_projections(request):
     
     
     context = {
-        'projections': projections
+        'projections': projections,
+        'test': picked
     }
     return render(request, 'app_template/live_projections.html', context)
 

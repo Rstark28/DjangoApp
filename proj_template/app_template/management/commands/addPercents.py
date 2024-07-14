@@ -9,4 +9,5 @@ class Command(BaseCommand):
         projections = Projection.objects.all()
         for projection in projections:
             projection.playoffPercent = projection.madePlayoffs / projection.n * 100
+            
             projection.save()
