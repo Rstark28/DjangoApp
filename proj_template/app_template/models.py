@@ -84,7 +84,7 @@ class UpcomingGames(models.Model):
     isComplete = models.BooleanField()
     homeScore = models.IntegerField()
     awayScore = models.IntegerField()
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, default=1)
     isCustom = models.BooleanField(default=False, null=True, blank=True)
     isPicked = models.BooleanField(default=False, null=True, blank=True)
     teamPicked = models.ForeignKey(NFLTeam, on_delete=models.CASCADE, null=True, blank=True)  

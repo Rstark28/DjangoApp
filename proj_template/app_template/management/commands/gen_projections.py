@@ -116,6 +116,7 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         #Week of simulation
         self.currWeek = kwargs['week']
+
         #Resets Projections For Now. Will Remove later to store historical projections
         Projection.objects.all().filter(currWeek=self.currWeek).delete()
         
