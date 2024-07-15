@@ -22,8 +22,8 @@ class Command(BaseCommand):
                 historical_data = HistoricalData.objects.create(
                     date=datetime.strptime(row['date'], '%d-%b-%Y').date(),
                     season=int(row['season']),
-                    neutral=bool(row['neutral']),
-                    playoff=bool(row['playoff']),
+                    neutral=row['neutral'] == '1',
+                    playoff=row['playoff'] == '1',
                     team1=row['team1'],
                     team2=row['team2'],
                     elo1_pre=float(row['elo1_pre']),
@@ -34,8 +34,8 @@ class Command(BaseCommand):
                     elo2_post=float(row['elo2_post']),
                     score1=int(row['score1']),
                     score2=int(row['score2']),
-                    is_home=bool(row['is_home']),
-                    is_win=bool(row['is_win']),
+                    is_home=row['is_home'] == '1',
+                    is_win=row['is_win'] == '1',
                     gm_no=int(row['gm_no'])
                 )
 
@@ -45,6 +45,5 @@ class Command(BaseCommand):
                 row_count += 1
                 if row_count % 100 == 0:
                     self.stdout.write(self.style.SUCCESS(f'Processed {row_count} rows'))
-
 
         self.stdout.write(self.style.SUCCESS('Successfully imported historical data'))

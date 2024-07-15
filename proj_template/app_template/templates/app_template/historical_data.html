@@ -46,7 +46,7 @@
                 title: {
                     text: 'Game Date'
                 },
-                categories: gamesData.map(game => new Date(game[0]).toISOString().slice(0, 10))  // Use the date in ISO format
+                categories: gamesData.map(game => game[5])
             },
             yAxis: {
                 title: {
@@ -56,7 +56,7 @@
             tooltip: {
                 formatter: function () {
                     var game = gamesData[this.point.index];
-                    var result = game[6] ? "W" : (game[7] == game[8] ? "T" : "L");
+                    var result = game[7] ? (game[7] > game[8] ? "W" : (game[7] == game[8] ? "T" : "L")) : "";
                     var setting = game[9] ? " vs. " : " @";
                     return "<b>Elo Rating:</b> " + Math.round(game[1]) + "<br>" + result + " " + game[7]
                         + "-" + game[8] + setting + game[4] + " | " + new Date(game[0]).toISOString().slice(0, 10) + "<br>"
