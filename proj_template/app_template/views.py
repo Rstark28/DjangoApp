@@ -2,6 +2,7 @@ from django.contrib import messages
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.views import PasswordResetView
 from django.contrib.auth.models import User
+from django.db import transaction
 import copy
 
 from django.contrib.auth import authenticate, login as auth_login, logout
@@ -30,8 +31,8 @@ def historical_data(request):
     historical_games = []
 
     if team_abbreviation:
-        selected_team = NFLTeam.objects.get(abbreviation=team_abbreviation)
-        historical_games = selected_team.historical_games.all().values('date', 'elo1_post', 'season')
+        selected_team = get_object_or_404(NFLTeam, abbreviation=team_abbreviation)
+        historical_games = selected_team.historical_games.values('date', 'elo1_post', 'season')
 
     context = {
         'nfl_teams': NFLTeam.objects.all(),
@@ -47,109 +48,105 @@ def historical_data(request):
 # returns:    HttpResponse object rendering 'app_template/live_projections.html'
 def live_projections(request):
     currentUser = request.user
-    
     AllTeams = NFLTeam.objects.all()
+
     
-    week1_projection = request.POST.getlist('week1')
-    week2_projection = request.POST.getlist('week2')
-    week3_projection = request.POST.getlist('week3')
+    week1_projection = request.POST.getlist('week1[]')
+    week2_projection = request.POST.getlist('week2[]')
+    week3_projection = request.POST.getlist('week3[]')
     all_projections = week1_projection + week2_projection + week3_projection
-    projectionSet = set(all_projections)
+    method = request.method
     
+    projectionSet = set(all_projections)
     allGames = UpcomingGames.objects.all()
     allProjections = Projection.objects.select_related('team')
     
-    
-    
     adminUser = User.objects.get(username='admin')
-    baseProjections = allProjections.filter(user = adminUser)
-    userGames = allGames.filter(user = request.user, isPicked=True)
-    userProjections = allProjections.filter(user=request.user)
-    baseGames = allGames.filter(user = adminUser)
-    if len(userGames) == 0:
-        #Creates copies of all of the admin games if the user has no games
-        for game in baseGames:
-            userGame = copy.copy(game)
-            userGame.id = None
-            userGame.user = request.user
-            userGame.save()
-        userGames = allGames.filter(user = request.user)
-    if len(userProjections) == 0:
-        #Generates Database for user projections
-        for projection in baseProjections:
-            userPorjection = copy.copy(projection)
-            userPorjection.id = None
-            userPorjection.user = request.user
-            userPorjection.save()
-        userProjections = allProjections.filter(user=request.user)
-
+    baseProjections = allProjections.filter(user=adminUser)
+    userGames = allGames.filter(user=request.user.id, isPicked=True)
+    userProjections = allProjections.filter(user=request.user.id)
+    baseGames = allGames.filter(user=adminUser)
     
+    projections = baseProjections
+    
+    # Ensure user has game entries if none exist
+    '''
+    if len(userGames) == 0:
+        with transaction.atomic():
+            for game in baseGames:
+                userGame = copy.copy(game)
+                userGame.id = None
+                userGame.user = request.user
+                userGame.save()
+        userGames = allGames.filter(user=request.user)
+    
+    # Generate user projections if none exist
+    if len(userProjections) == 0:
+        with transaction.atomic():
+            for projection in baseProjections:
+                userProjection = copy.copy(projection)
+                userProjection.id = None
+                userProjection.user = request.user
+                userProjection.save()
+        userProjections = allProjections.filter(user=request.user)
+    
+    # Determine if projections need to be updated
     if len(all_projections) == 0:
         picked = 'No'
-        projections = baseProjections
-        genProjections = False
         for game in userGames:
             game.isPicked = False
             game.save()
+        genProjections = False
     else:
-        #Creates set from current picks to see if the projection needs to be updated
         picked = 'Yes'
-        
-        
         userPicks = {f"{game.teamPicked.name}-{game.week}" for game in userGames.filter(isPicked=True)}
         genProjections = (userPicks != projectionSet)
-        projections = userProjections #Placeholder line
     
+    # Update projections based on user selections
     if genProjections:
-        #Note: These sets are full of strings, not the actual game objects
-        gamesToUndo = userPicks - projectionSet
-        gamesToDo = projectionSet - userPicks
-        
-        
-        for game in gamesToUndo:
-            seperatorIndex = game.find('-')
-            gameTeamStr = game[:seperatorIndex]
-            gameTeam = AllTeams.get(name=gameTeamStr)
-            gameWeek = game[seperatorIndex+1:]
-            gameObject = allGames.get(isPicked=True, week=gameWeek, teamPicked = gameTeam)
-            gameObject.isPicked = False
-            gameObject.save()
+        with transaction.atomic():
+            gamesToUndo = userPicks - projectionSet
+            gamesToDo = projectionSet - userPicks
             
-        for game in gamesToDo:
-            seperatorIndex = game.find('-')
-            gameTeamStr = game[:seperatorIndex]
-            gameTeam = AllTeams.get(name=gameTeamStr)
-            gameWeek = game[seperatorIndex+1:]
-            ifHome = allGames.filter(week=gameWeek, homeTeam=gameTeam)
-            ifAway = allGames.filter(week=gameWeek, awayTeam = gameTeam)
-            if len(ifHome) == 1:
-                gameToChange = ifHome[0]
-                gameToChange.isPicked = True
-                gameToChange.teamPicked = gameTeam
-                gameToChange.save()
-            if len(ifAway) == 1:
-                gameToChange = ifAway[0]
-                gameToChange.isPicked = True
-                gameToChange.teamPicked = gameTeam
-                gameToChange.save()
-        #TODO Use this schedule to gen projections
-        projection = userProjections #Placeholder for site not to crash
-    
-    
-    sort_by = request.GET.get('sort_by', 'team__name')  # Default sorting by team name
+            for game in gamesToUndo:
+                gameTeamStr, gameWeek = game.split('-')
+                gameTeam = AllTeams.get(name=gameTeamStr)
+                gameObject = allGames.get(isPicked=True, week=gameWeek, teamPicked=gameTeam)
+                gameObject.isPicked = False
+                gameObject.save()
+            
+            for game in gamesToDo:
+                gameTeamStr, gameWeek = game.split('-')
+                gameTeam = AllTeams.get(name=gameTeamStr)
+                ifHome = allGames.filter(week=gameWeek, homeTeam=gameTeam)
+                ifAway = allGames.filter(week=gameWeek, awayTeam=gameTeam)
+                
+                if ifHome.exists():
+                    gameToChange = ifHome.first()
+                    gameToChange.isPicked = True
+                    gameToChange.teamPicked = gameTeam
+                    gameToChange.save()
+                elif ifAway.exists():
+                    gameToChange = ifAway.first()
+                    gameToChange.isPicked = True
+                    gameToChange.teamPicked = gameTeam
+                    gameToChange.save()
+    '''
+    sort_by = request.GET.get('sort_by', 'team__name')
     valid_sort_fields = ['team__name', '-team__elo', '-madePlayoffs', '-wonDivision', '-wonConference', '-wonSuperBowl']
-
+    
     if sort_by not in valid_sort_fields:
-        sort_by = 'team__name'  # Fallback to default if invalid sorting field is provided
-
+        sort_by = 'team__name'
     
     projections = projections.order_by(sort_by)
     
-    
     context = {
         'projections': projections,
-        'test': picked
+        'picks': all_projections,
+        'len': len(all_projections),
+        'method': method
     }
+    
     return render(request, 'app_template/live_projections.html', context)
 
 # name:       register
@@ -174,7 +171,8 @@ def register(request: HttpRequest) -> HttpResponse:
     else:
         form = CreateUserForm()
 
-    context = {'form': form}
+    context = {'form': form
+               }
     return render(request, 'app_template/register.html', context)
 
 # name:       user_login
