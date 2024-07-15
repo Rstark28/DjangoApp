@@ -33,15 +33,21 @@ def historical_data(request):
 
     if team_abbreviation:
         selected_team = get_object_or_404(NFLTeam, abbreviation=team_abbreviation)
-        historical_games = list(selected_team.historical_games.values_list(
-            'date', 'elo1_post', 'elo2_post', 'team1', 'team2', 'season',
-            'is_win', 'score1', 'score2', 'is_home', 'elo_prob1'
+        historical_games = list(selected_team.historical_games.values(
+            'date', 'elo1_post', 'elo2_post', 'team1', 'team2', 'score1', 'score2', 'elo_prob1', 'elo_prob2', 'playoff', 'season'
         ))
+
+        # Map the correct Elo score based on the selected team
+        for game in historical_games:
+            if game['team1'] == team_abbreviation:
+                game['elo_post'] = game['elo1_post']
+            else:
+                game['elo_post'] = game['elo2_post']
 
     context = {
         'nfl_teams': NFLTeam.objects.all(),
         'selected_team': selected_team,
-        'historical_games': json.dumps(historical_games, default=str),  # Convert to JSON
+        'historical_games': json.dumps(historical_games, default=str),
     }
     return render(request, 'app_template/historical_data.html', context)
 

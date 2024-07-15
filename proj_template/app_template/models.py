@@ -1,6 +1,9 @@
+from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.db import models
 from django.utils import timezone
-from django.contrib.auth.models import User
+
+User = get_user_model()
 
 class Post(models.Model):
     title = models.CharField(max_length=100)
@@ -40,7 +43,7 @@ class HistoricalData(models.Model):
     score1 = models.IntegerField(default=0)
     score2 = models.IntegerField(default=0)
     quality = models.FloatField(default=0.0)
-    importance = models.FloatField(default=0.0) 
+    importance = models.FloatField(default=0.0)
     total_rating = models.FloatField(default=0.0)
 
     def __str__(self):
@@ -81,10 +84,10 @@ class UpcomingGames(models.Model):
     isComplete = models.BooleanField()
     homeScore = models.IntegerField()
     awayScore = models.IntegerField()
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True) 
-    isCustom = models.BooleanField(default=False, null=True, blank=True) 
-    isPicked = models.BooleanField(default=False, null=True, blank=True) 
-    teamPicked = models.ForeignKey('NFLTeam', on_delete=models.CASCADE, null=True, blank=True)  
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    isCustom = models.BooleanField(default=False, null=True, blank=True)
+    isPicked = models.BooleanField(default=False, null=True, blank=True)
+    teamPicked = models.ForeignKey(NFLTeam, on_delete=models.CASCADE, null=True, blank=True)  
 
     def __str__(self):
         return f"{self.date} - {self.awayTeam} @ {self.homeTeam}"

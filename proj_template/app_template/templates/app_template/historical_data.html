@@ -18,9 +18,9 @@
 
     <h2>{{ selected_team.name }}</h2>
     {% if selected_team %}
-        <div id="container" style="width:100%; height:400px;"></div>
+    <div id="container" style="width:100%; height:400px;"></div>
     {% else %}
-        <p>Please select a team to view historical games.</p>
+    <p>Please select a team to view historical games.</p>
     {% endif %}
 </div>
 
@@ -46,7 +46,7 @@
                 title: {
                     text: 'Game Date'
                 },
-                categories: gamesData.map(game => game[5]),
+                categories: gamesData.map(game => game.season),
             },
             yAxis: {
                 title: {
@@ -56,15 +56,28 @@
             tooltip: {
                 formatter: function () {
                     var game = gamesData[this.point.index];
-                    var result = game[7] ? (game[7] > game[8] ? "W" : (game[7] == game[8] ? "T" : "L")) : "";
-                    var setting = game[9] ? " vs. " : " @";
-                    return "<b>Elo Rating:</b> " + Math.round(game[1]) + "<br>" + result + " " + game[7]
-                        + "-" + game[8] + setting + game[4] + " | " + new Date(game[0]).toISOString().slice(0, 10) + "<br>"
-                        + "<b>Win Prob: </b>" + parseFloat(game[10] * 100).toFixed(1) + "%";
+                    var playoffInfo = "";
+                    if (game.playoff === null) {
+                        playoffInfo = "Regular Season"
+                    } else if (game.playoff === 'w') {
+                        playoffInfo = "WildCard";
+                    } else if (game.playoff === 'd') {
+                        playoffInfo = "Divisional";
+                    } else if (game.playoff === 'c') {
+                        playoffInfo = "Conference Championship";
+                    } else if (game.playoff === 's') {
+                        playoffInfo = "Super Bowl";
+                    }
+                    return playoffInfo + "<br>" +
+                        "<b>Elo Rating:</b> " + Math.round(game.elo_post) + "<br>" +
+                        "<b>Result: </b>" + game.team1 + ": " + game.score1 + " -- " + game.team2 + ": " + game.score2 + "<br>" +
+                        "<b>Date: </b>" + new Date(game.date).toISOString().slice(0, 10) + "<br>" +
+                        "<b>Win Prob: </b>" + parseFloat(game.elo_prob1 * 100).toFixed(1) + "%";
                 }
+
             },
             series: [{
-                data: gamesData.map(game => game[1]),  // Accessing elo1_post from each game
+                data: gamesData.map(game => game.elo_post),
                 name: 'Elo Score',
                 color: '{{ selected_team.color_hex }}',
                 lineWidth: 3,
