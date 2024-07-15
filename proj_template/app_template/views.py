@@ -10,6 +10,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from .forms import CreateUserForm, CustomPasswordResetForm
 from .models import NFLTeam, Projection, UpcomingGames
 from django.http import HttpRequest, HttpResponse
+import json
 
 # name:       home
 # purpose:    Renders the home page.
@@ -32,12 +33,15 @@ def historical_data(request):
 
     if team_abbreviation:
         selected_team = get_object_or_404(NFLTeam, abbreviation=team_abbreviation)
-        historical_games = selected_team.historical_games.values('date', 'elo1_post', 'season')
+        historical_games = list(selected_team.historical_games.values_list(
+            'date', 'elo1_post', 'elo2_post', 'team1', 'team2', 'season',
+            'is_win', 'score1', 'score2', 'is_home', 'elo_prob1'
+        ))
 
     context = {
         'nfl_teams': NFLTeam.objects.all(),
         'selected_team': selected_team,
-        'historical_games': list(historical_games),
+        'historical_games': json.dumps(historical_games, default=str),  # Convert to JSON
     }
     return render(request, 'app_template/historical_data.html', context)
 
@@ -47,14 +51,14 @@ def historical_data(request):
 # request:    HttpRequest object
 # returns:    HttpResponse object rendering 'app_template/live_projections.html'
 def live_projections(request):
+    
     currentUser = request.user
     AllTeams = NFLTeam.objects.all()
 
-    
-    week1_projection = request.POST.getlist('week1[]')
-    week2_projection = request.POST.getlist('week2[]')
-    week3_projection = request.POST.getlist('week3[]')
-    all_projections = week1_projection + week2_projection + week3_projection
+
+    selected_teams = request.GET.get('selectedTeams')
+    all_projections = selected_teams.split(',') if selected_teams else []
+    print(all_projections)
     method = request.method
     
     projectionSet = set(all_projections)
@@ -63,15 +67,16 @@ def live_projections(request):
     
     adminUser = User.objects.get(username='admin')
     baseProjections = allProjections.filter(user=adminUser)
-    userGames = allGames.filter(user=request.user.id, isPicked=True)
+    userGames = allGames.filter(user=request.user.id)
     userProjections = allProjections.filter(user=request.user.id)
     baseGames = allGames.filter(user=adminUser)
     
     projections = baseProjections
     
     # Ensure user has game entries if none exist
-    '''
-    if len(userGames) == 0:
+    
+
+    if len(userGames) == 0 and request.user.id is not None:
         with transaction.atomic():
             for game in baseGames:
                 userGame = copy.copy(game)
@@ -79,14 +84,15 @@ def live_projections(request):
                 userGame.user = request.user
                 userGame.save()
         userGames = allGames.filter(user=request.user)
-    
+    print(len(userGames))
+    '''
     # Generate user projections if none exist
     if len(userProjections) == 0:
         with transaction.atomic():
             for projection in baseProjections:
                 userProjection = copy.copy(projection)
                 userProjection.id = None
-                userProjection.user = request.user
+                userProjection.user = request.user.id
                 userProjection.save()
         userProjections = allProjections.filter(user=request.user)
     
@@ -181,7 +187,6 @@ def register(request: HttpRequest) -> HttpResponse:
 # request:    HttpRequest object
 # returns:    HttpResponse object rendering 'app_template/login.html'
 def user_login(request: HttpRequest) -> HttpResponse:
-
     if request.method == 'POST':
         form = AuthenticationForm(data=request.POST)
         if form.is_valid():

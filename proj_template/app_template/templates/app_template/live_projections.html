@@ -1,15 +1,12 @@
 {% extends "app_template/base.html" %}
+
 {% block content %}
-{% load dividefilter %}
+{% load custom_filters %}
 <div class="container mt-5">
     <h2 class="mb-4">NFL Projections Table</h2>
-    <p>{{ len }}</p>
-    <p>{{ method }}</p>
-    {% for pick in picks %}
-    <p>{{ pick }}</p>
-    {% endfor %}
-    <form id="projectionForm" method="post" action="{% url 'app_template.live_projections' %}">
-        {% csrf_token %}
+    <div id="selectedTeams" class="mb-4"></div> <!-- Container to display selected week and team names -->
+    <form id="projectionForm" method="get" action="{% url 'app_template.live_projections' %}">
+        <input type="hidden" id="selectedTeamsInput" name="selectedTeams"> <!-- Hidden input to store selected teams data -->
         <table class="table table-bordered">
             <thead class="thead-light">
                 <tr>
@@ -19,9 +16,9 @@
                     <th><a href="?sort_by=-wonDivision">Win Division</a></th>
                     <th><a href="?sort_by=-wonConference">Win Conference</a></th>
                     <th><a href="?sort_by=-wonSuperBowl">Win Super Bowl</a></th>
-                    <th>Week 1</th>
-                    <th>Week 2</th>
-                    <th>Week 3</th>
+                    {% for week in 1|to:18 %}
+                    <th>Week {{ week }}</th>
+                    {% endfor %}
                 </tr>
             </thead>
             <tbody>
@@ -30,12 +27,13 @@
                     <td>{{ projection.team.name }}</td>
                     <td>{{ projection.team.elo }}</td>
                     <td>{{ projection.madePlayoffs|divide:projection.n }}%</td>
-                    <td>{{ projection.wonDivision }}%</td>
-                    <td>{{ projection.wonConference }}%</td>
-                    <td>{{ projection.wonSuperBowl }}%</td>
-                    <td><input type="checkbox" name="week1[]" value="{{ projection.team.name }}-1"></td>
-                    <td><input type="checkbox" name="week2[]" value="{{ projection.team.name }}-2"></td>
-                    <td><input type="checkbox" name="week3[]" value="{{ projection.team.name }}-3"></td>
+                    <td>{{ projection.wonDivision|divide:projection.n }}%</td>
+                    <td>{{ projection.wonConference|divide:projection.n }}%</td>
+                    <td>{{ projection.wonSuperBowl|divide:projection.n }}%</td>
+                    {% for week in 1|to:18 %}
+                    <td><input type="checkbox" name="week{{ week }}[]"
+                            value="{{ projection.team.name }}-{{ week }}"></td>
+                    {% endfor %}
                 </tr>
                 {% endfor %}
             </tbody>
@@ -48,34 +46,20 @@
 <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 <script>
-    // Optional: You can use JavaScript to handle form submission
-    $('#projectionForm').submit(function(event) {
-        event.preventDefault(); // Prevent default form submission
-        
-        var pickedGames = []; // Array to store picked games
-        
-        // Iterate over checkboxes for weeks 1, 2, and 3
-        $('input[type="checkbox"]').each(function(index, checkbox) {
-            if ($(checkbox).is(':checked')) {
-                pickedGames.push($(checkbox).val()); // Push checked checkbox value to array
-            }
-        });
-        
-        console.log('Picked Games:', pickedGames); // Log picked games array
-        
-        // AJAX submission
-        $.ajax({
-            url: $(this).attr('action'),
-            type: $(this).attr('method'),
-            data: $(this).serialize(), // Serialize form data
-            success: function(response) {
-                console.log('Projections updated successfully'); // Log success message
-                console.log(response); // Log server response
-            },
-            error: function(xhr, errmsg, err) {
-                console.log('Error updating projections'); // Log error message
-                console.log(xhr.status + ': ' + xhr.responseText); // Log error details
-            }
+    $(document).ready(function () {
+        $('input[type="checkbox"]').change(function () {
+            var selectedTeams = []; // Array to store selected teams and weeks
+            $('input[type="checkbox"]:checked').each(function () {
+                selectedTeams.push($(this).val()); // Add value of checked checkbox to array
+            });
+
+            // Update the content of the selectedTeams div
+            $('#selectedTeams').html(selectedTeams.map(function (item) {
+                return '<p>' + item + '</p>';
+            }).join(''));
+
+            // Update the value of the hidden input field
+            $('#selectedTeamsInput').val(selectedTeams.join(','));
         });
     });
 </script>

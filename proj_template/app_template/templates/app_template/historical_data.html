@@ -28,26 +28,25 @@
 <script src="https://code.highcharts.com/highcharts.js"></script>
 <script src="https://code.highcharts.com/modules/exporting.js"></script>
 <script>
-
     document.addEventListener('DOMContentLoaded', function () {
+        const gamesData = JSON.parse('{{ historical_games|escapejs }}');
+
+        console.log('Games Data:', gamesData);  // Debug: Log the games data
+
         Highcharts.chart('container', {
             chart: {
                 type: 'line',
-                zoomType: 'x'  // Enable zooming on the x-axis
+                zoomType: 'x'
             },
             title: {
                 text: 'Elo Scores Over Time'
             },
             xAxis: {
-                type: 'category',
+                type: 'datetime',
                 title: {
-                    text: 'Game Number'
+                    text: 'Game Date'
                 },
-                categories: [
-                    {% for game in historical_games %}
-                        '{{ game.date }}',
-                    {% endfor %}
-                ]
+                categories: gamesData.map(game => new Date(game[0]).toISOString().slice(0, 10))  // Use the date in ISO format
             },
             yAxis: {
                 title: {
@@ -56,10 +55,16 @@
             },
             tooltip: {
                 formatter: function () {
-                    return 'Need to fix'
+                    var game = gamesData[this.point.index];
+                    var result = game[6] ? "W" : (game[7] == game[8] ? "T" : "L");
+                    var setting = game[9] ? " vs. " : " @";
+                    return "<b>Elo Rating:</b> " + Math.round(game[1]) + "<br>" + result + " " + game[7]
+                        + "-" + game[8] + setting + game[4] + " | " + new Date(game[0]).toISOString().slice(0, 10) + "<br>"
+                        + "<b>Win Prob: </b>" + parseFloat(game[10]).toFixed(3);
                 }
             },
             series: [{
+                data: gamesData.map(game => game[1]),  // Accessing elo1_post from each game
                 name: 'Elo Score',
                 color: '{{ selected_team.color_hex }}',
                 lineWidth: 3,
@@ -68,18 +73,12 @@
                     fillColor: '{{ selected_team.color_hex }}',
                     radius: 4
                 },
-                data: [
-                    {% for game in historical_games %}
-                        {{ game.elo1_post }},
-                    {% endfor %}
-                ]
             }],
             credits: {
-                enabled: false  // Disable Highcharts credits
+                enabled: false
             }
         });
     });
-
 </script>
 {% endif %}
 {% endblock %}
