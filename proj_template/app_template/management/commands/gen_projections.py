@@ -24,7 +24,7 @@ class Command(BaseCommand):
         self.cities = City.objects.all()
         self.cityCoordinatesCache = {}                   
 
-        allGames = UpcomingGames.objects.all().filter(isComplete=False)
+        allGames = UpcomingGames.objects.all().filter(isComplete=False, user=self.adminUser)
         self.gamesByWeek = {}
         for game in allGames:
             if game.week not in self.gamesByWeek:
