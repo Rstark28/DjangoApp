@@ -1,6 +1,7 @@
 from io import StringIO
 from django.core.management.base import BaseCommand
 from app_template.models import NFLTeam, UpcomingGames, Season, Projection, City
+from django.contrib.auth.models import User
 import pandas as pd
 import requests
 from datetime import datetime
@@ -15,7 +16,7 @@ class Command(BaseCommand):
     help = 'Updates/Generates the projections'
 
     def __init__(self):
-
+        self.adminUser = User.objects.all().get(username='admin')
         self.kFactor = 20.0
         self.superBowlCity = 'New Orleans'
         self.teams = NFLTeam.objects.all()
@@ -118,7 +119,7 @@ class Command(BaseCommand):
         self.currWeek = kwargs['week']
 
         #Resets Projections For Now. Will Remove later to store historical projections
-        Projection.objects.all().filter(currWeek=self.currWeek).delete()
+        Projection.objects.all().filter(currWeek=self.currWeek, user=self.adminUser).delete()
         
         # Number of simulations to run
         numSeasons = kwargs['num']
@@ -151,7 +152,9 @@ class Command(BaseCommand):
                                       stdv=self.resultsDF.at[team, 'stdev'],
                                       firstquartile = self.resultsDF.at[team, '25'],
                                       thirdquartile = self.resultsDF.at[team, '75'],
-                                      currWeek = self.currWeek
+                                      currWeek = self.currWeek,
+                                      user = self.adminUser,
+                                      isCustom=False
                                       )
             
         # Save results to CSV file
