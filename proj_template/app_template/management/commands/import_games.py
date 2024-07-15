@@ -68,8 +68,8 @@ class Command(BaseCommand):
                 cityStr = ' '.join(cityArr)
                 
                 
-                currHome = teams.get(team_name=homeStr)
-                currAway = teams.get(team_name=awayStr)
+                currHome = teams.get(name=homeStr)
+                currAway = teams.get(name=awayStr)
                 currWeek = int(week[0].get_text())
                 ByeDict[int(currWeek)].add(currHome)
                 ByeDict[int(currWeek)].add(currAway)

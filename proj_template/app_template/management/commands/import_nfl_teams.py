@@ -11,7 +11,7 @@ class Command(BaseCommand):
             reader = csv.DictReader(file)
             for row in reader:
                 NFLTeam.objects.create(
-                    team_name=row['Team Name'],
+                    name=row['Team Name'],
                     abbreviation=row['Abbreviation'],
                     color_hex=row['Color'],
                     elo = float(row['Elo'])

@@ -1,7 +1,6 @@
 from django.db import models
 from django.utils import timezone
 from django.contrib.auth.models import User
-import math
 
 class Post(models.Model):
     title = models.CharField(max_length=100)
@@ -11,22 +10,38 @@ class Post(models.Model):
 
 class HistoricalData(models.Model):
     date = models.DateField()
-    season = models.IntegerField()
+    season = models.PositiveIntegerField()
     neutral = models.BooleanField()
-    playoff = models.BooleanField()
+    playoff = models.CharField(max_length=1, null=True, blank=True)
     team1 = models.CharField(max_length=50)
     team2 = models.CharField(max_length=50)
-    elo1_pre = models.FloatField()
-    elo2_pre = models.FloatField()
-    elo_prob1 = models.FloatField()
-    elo_prob2 = models.FloatField()
-    elo1_post = models.FloatField()
-    elo2_post = models.FloatField()
-    score1 = models.IntegerField()
-    score2 = models.IntegerField()
-    is_home = models.BooleanField()
-    is_win = models.BooleanField()
-    gm_no = models.IntegerField()
+    elo1_pre = models.FloatField(default=0.0)
+    elo2_pre = models.FloatField(default=0.0)
+    elo_prob1 = models.FloatField(default=0.0)
+    elo_prob2 = models.FloatField(default=0.0)
+    elo1_post = models.FloatField(default=0.0)
+    elo2_post = models.FloatField(default=0.0)
+    qbelo1_pre = models.FloatField(default=0.0)
+    qbelo2_pre = models.FloatField(default=0.0)
+    qb1 = models.CharField(max_length=50, default='')
+    qb2 = models.CharField(max_length=50, default='')
+    qb1_value_pre = models.FloatField(default=0.0)
+    qb2_value_pre = models.FloatField(default=0.0)
+    qb1_adj = models.FloatField(default=0.0)
+    qb2_adj = models.FloatField(default=0.0)
+    qbelo_prob1 = models.FloatField(default=0.0)
+    qbelo_prob2 = models.FloatField(default=0.0)
+    qb1_game_value = models.FloatField(default=0.0)
+    qb2_game_value = models.FloatField(default=0.0)
+    qb1_value_post = models.FloatField(default=0.0)
+    qb2_value_post = models.FloatField(default=0.0)
+    qbelo1_post = models.FloatField(default=0.0)
+    qbelo2_post = models.FloatField(default=0.0)
+    score1 = models.IntegerField(default=0)
+    score2 = models.IntegerField(default=0)
+    quality = models.FloatField(default=0.0)
+    importance = models.FloatField(default=0.0) 
+    total_rating = models.FloatField(default=0.0)
 
     def __str__(self):
         return f"{self.date} - {self.team1} vs {self.team2}"
@@ -66,10 +81,11 @@ class UpcomingGames(models.Model):
     isComplete = models.BooleanField()
     homeScore = models.IntegerField()
     awayScore = models.IntegerField()
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    isCustom = models.BooleanField()
-    isPicked = models.BooleanField()
-    teamPicked = models.ForeignKey(NFLTeam, on_delete=models.CASCADE)   
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True) 
+    isCustom = models.BooleanField(default=False, null=True, blank=True) 
+    isPicked = models.BooleanField(default=False, null=True, blank=True) 
+    teamPicked = models.ForeignKey('NFLTeam', on_delete=models.CASCADE, null=True, blank=True)  
+
     def __str__(self):
         return f"{self.date} - {self.awayTeam} @ {self.homeTeam}"
 
@@ -95,14 +111,10 @@ class Projection(models.Model):
     wonSuperBowl = models.IntegerField()
     stdv = models.FloatField()
     firstquartile = models.FloatField()
-    thirdquartile= models.FloatField()
-    currWeek = models.IntegerField(default = 0)
+    thirdquartile = models.FloatField()
+    currWeek = models.IntegerField(default=0)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     isCustom = models.BooleanField()
-
-    
-    
     
     def __str__(self):
         return f"A projection to win {round(self.median)}, making the playoffs {round(self.madePlayoffs / self.n, 4) * 100}% of the time"
-    

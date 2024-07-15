@@ -46,7 +46,7 @@
                 title: {
                     text: 'Game Date'
                 },
-                categories: gamesData.map(game => game[5])
+                categories: gamesData.map(game => game[5]),
             },
             yAxis: {
                 title: {
@@ -60,7 +60,7 @@
                     var setting = game[9] ? " vs. " : " @";
                     return "<b>Elo Rating:</b> " + Math.round(game[1]) + "<br>" + result + " " + game[7]
                         + "-" + game[8] + setting + game[4] + " | " + new Date(game[0]).toISOString().slice(0, 10) + "<br>"
-                        + "<b>Win Prob: </b>" + parseFloat(game[10]).toFixed(3);
+                        + "<b>Win Prob: </b>" + parseFloat(game[10] * 100).toFixed(1) + "%";
                 }
             },
             series: [{
