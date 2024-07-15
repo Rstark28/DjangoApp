@@ -1,0 +1,66 @@
+{% extends "main/base.html" %}
+
+{% block content %}
+{% load custom_filters %}
+<div class="container mt-5">
+    <h2 class="mb-4">NFL Projections Table</h2>
+    <div id="selectedTeams" class="mb-4"></div> <!-- Container to display selected week and team names -->
+    <form id="projectionForm" method="get" action="{% url 'main.live_projections' %}">
+        <input type="hidden" id="selectedTeamsInput" name="selectedTeams"> <!-- Hidden input to store selected teams data -->
+        <table class="table table-bordered">
+            <thead class="thead-light">
+                <tr>
+                    <th><a href="?sort_by=team__name">Team Name</a></th>
+                    <th><a href="?sort_by=-team__elo">Elo</a></th>
+                    <th><a href="?sort_by=-madePlayoffs">Make Playoffs</a></th>
+                    <th><a href="?sort_by=-wonDivision">Win Division</a></th>
+                    <th><a href="?sort_by=-wonConference">Win Conference</a></th>
+                    <th><a href="?sort_by=-wonSuperBowl">Win Super Bowl</a></th>
+                    {% for week in 1|to:18 %}
+                    <th>Week {{ week }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for projection in projections %}
+                <tr>
+                    <td>{{ projection.team.name }}</td>
+                    <td>{{ projection.team.elo }}</td>
+                    <td>{{ projection.madePlayoffs|divide:projection.n }}%</td>
+                    <td>{{ projection.wonDivision|divide:projection.n }}%</td>
+                    <td>{{ projection.wonConference|divide:projection.n }}%</td>
+                    <td>{{ projection.wonSuperBowl|divide:projection.n }}%</td>
+                    {% for week in 1|to:18 %}
+                    <td><input type="checkbox" name="week{{ week }}[]"
+                            value="{{ projection.team.name }}-{{ week }}"></td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <button type="submit" class="btn btn-primary">Update Projections</button>
+    </form>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+<script>
+    $(document).ready(function () {
+        $('input[type="checkbox"]').change(function () {
+            var selectedTeams = []; // Array to store selected teams and weeks
+            $('input[type="checkbox"]:checked').each(function () {
+                selectedTeams.push($(this).val()); // Add value of checked checkbox to array
+            });
+
+            // Update the content of the selectedTeams div
+            $('#selectedTeams').html(selectedTeams.map(function (item) {
+                return '<p>' + item + '</p>';
+            }).join(''));
+
+            // Update the value of the hidden input field
+            $('#selectedTeamsInput').val(selectedTeams.join(','));
+        });
+    });
+</script>
+{% endblock content %}

@@ -1,0 +1,27 @@
+{% extends "main/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container">
+    <h2>Login</h2>
+    <form method="POST">
+        {% csrf_token %}
+
+        <div class="form-group">
+            {{ form.username.label_tag }}
+            <input type="text" name="{{ form.username.name }}" id="{{ form.username.id_for_label }}"
+                class="form-control" placeholder="Username" required>
+        </div>
+
+        <div class="form-group">
+            {{ form.password.label_tag }}
+            <input type="password" name="{{ form.password.name }}" id="{{ form.password.id_for_label }}"
+                class="form-control" placeholder="Password" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Login</button>
+
+        <a href="{% url 'reset_password' %}" class="btn btn-link">Forgot your password?</a>
+    </form>
+</div>
+{% endblock %}

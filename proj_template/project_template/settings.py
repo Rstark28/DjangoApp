@@ -30,7 +30,7 @@ ALLOWED_HOSTS = ['*']
 # Application definition
 
 INSTALLED_APPS = [
-    'app_template.apps.AppTemplateConfig',
+    'main.apps.AppTemplateConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -98,7 +98,7 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
     {
-        'NAME': 'app_template.validators.CustomPasswordValidator',
+        'NAME': 'main.validators.CustomPasswordValidator',
     },
 ]
 
