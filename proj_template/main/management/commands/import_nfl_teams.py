@@ -14,7 +14,8 @@ class Command(BaseCommand):
                     name=row['Team Name'],
                     abbreviation=row['Abbreviation'],
                     color_hex=row['Color'],
-                    elo = float(row['Elo'])
+                    elo = float(row['Elo']),
+                    city=row['City']
                 )
 
         self.stdout.write(self.style.SUCCESS('Successfully imported NFL teams'))

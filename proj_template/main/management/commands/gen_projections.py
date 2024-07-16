@@ -31,6 +31,7 @@ class Command(BaseCommand):
                 self.gamesByWeek[game.week] = []
             self.gamesByWeek[game.week].append(game)
 
+
         # Initialize a DataFrame to track the current state of the simulation
         self.trackerDF = pd.DataFrame(columns=['Team', 'Elo', 'TotWins', 'DivWins', 'ConfWins', 'TeamsLostTo', 'TeamsBeat', 'Division', 'Conference', 'Seed', 'Playoff Round'])
         self.trackerDF.set_index('Team', inplace=True)
@@ -101,7 +102,7 @@ class Command(BaseCommand):
             '-n', '--num',
             type = int,
             help = 'Number of Simulations',
-            default = '2'
+            default = '100'
         )
         parser.add_argument(
             '-w', '--week',
