@@ -4,6 +4,13 @@
   padding: 0;
 }
 
+.messages li {
+  padding: 10px 15px;
+  margin-bottom: 10px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+}
+
 .messages li.success {
   background-color: #dff0d8;
   border-color: #d0e9c6;
@@ -17,7 +24,7 @@
 }
 
 .messages li.warning {
-  background-color: #ffed75;
-  border-color: #dfe1a6;
-  color: #deba2d;
+  background-color: #fcf8e3;
+  border-color: #faebcc;
+  color: #8a6d3b;
 }

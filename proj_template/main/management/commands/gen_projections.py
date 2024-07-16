@@ -102,7 +102,7 @@ class Command(BaseCommand):
             '-n', '--num',
             type = int,
             help = 'Number of Simulations',
-            default = '100'
+            default = '1000'
         )
         parser.add_argument(
             '-w', '--week',
@@ -461,7 +461,7 @@ class Command(BaseCommand):
             # Determine the winner and loser
             winner, loser, winningOdds = (higherSeed, lowerSeed, homeOdds) if randVar < homeOdds else (lowerSeed, higherSeed, 1 - homeOdds)
 
-            print(f"{playoffs[winner]} beat {playoffs[loser]} in round {round}")
+            # print(f"{playoffs[winner]} beat {playoffs[loser]} in round {round}")
 
             # Adjust ELO ratings based on the game result
             self.adjustElo(playoffs[winner], playoffs[loser], winningOdds, self.kFactor)
@@ -482,11 +482,8 @@ class Command(BaseCommand):
     # - roundDict: Dictionary mapping round numbers to round names.
     def simPlayoffs(self, playoffs: dict[int, str]) -> None:
         roundDict = {0: 'Divisional', 1: 'Conference', 2: 'Super Bowl'}
-        print(playoffs)
         self.simRound(playoffs, 0, roundDict)
-        print(playoffs)
         self.simRound(playoffs, 1, roundDict)
-        print(playoffs)
         self.simRound(playoffs, 2, roundDict)
     
     

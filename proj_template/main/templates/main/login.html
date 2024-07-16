@@ -12,11 +12,16 @@
             <input type="text" name="{{ form.username.name }}" id="{{ form.username.id_for_label }}"
                 class="form-control" placeholder="Username" required>
         </div>
-
+        
         <div class="form-group">
             {{ form.password.label_tag }}
-            <input type="password" name="{{ form.password.name }}" id="{{ form.password.id_for_label }}"
-                class="form-control" placeholder="Password" required>
+            <div class="input-group">
+                <input type="password" name="{{ form.password.name }}" id="{{ form.password.id_for_label }}"
+                    class="form-control" placeholder="Password" required>
+                <div class="input-group-append">
+                    <button class="btn btn-outline-secondary toggle-password" type="button">Show</button>
+                </div>
+            </div>
         </div>
 
         <button type="submit" class="btn btn-primary">Login</button>
@@ -24,4 +29,20 @@
         <a href="{% url 'reset_password' %}" class="btn btn-link">Forgot your password?</a>
     </form>
 </div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    // Function to toggle password visibility
+    $(document).ready(function () {
+        $(".toggle-password").click(function () {
+            $(this).toggleClass("active");
+            var input = $(this).closest(".input-group").find("input");
+            if (input.attr("type") === "password") {
+                input.attr("type", "text");
+            } else {
+                input.attr("type", "password");
+            }
+        });
+    });
+</script>
 {% endblock %}

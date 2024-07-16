@@ -9,7 +9,8 @@
         <select id="teamSelect" name="team_abbreviation" class="form-control mr-2" onchange="this.form.submit()">
             <option value="">Change Team</option>
             {% for team in nfl_teams %}
-            <option value="{{ team.abbreviation }}" style="color: {{ team.color_hex }};" {% if selected_team and team.abbreviation == selected_team.abbreviation %} selected {% endif %}>
+            <option value="{{ team.abbreviation }}" style="color: {{ team.color_hex }};"
+                {% if selected_team and team.abbreviation == selected_team.abbreviation %} selected {% endif %}>
                 {{ team.name }}
             </option>
             {% endfor %}
@@ -31,8 +32,6 @@
     document.addEventListener('DOMContentLoaded', function () {
         const gamesData = JSON.parse('{{ historical_games|escapejs }}');
 
-        console.log('Games Data:', gamesData);  // Debug: Log the games data
-
         Highcharts.chart('container', {
             chart: {
                 type: 'line',
@@ -46,7 +45,7 @@
                 title: {
                     text: 'Game Date'
                 },
-                categories: gamesData.map(game => game.season),
+                categories: gamesData.map(game => game.season)
             },
             yAxis: {
                 title: {
@@ -55,26 +54,20 @@
             },
             tooltip: {
                 formatter: function () {
-                    var game = gamesData[this.point.index];
-                    var playoffInfo = "";
-                    if (game.playoff === null) {
-                        playoffInfo = "Regular Season"
-                    } else if (game.playoff === 'w') {
-                        playoffInfo = "WildCard";
-                    } else if (game.playoff === 'd') {
-                        playoffInfo = "Divisional";
-                    } else if (game.playoff === 'c') {
-                        playoffInfo = "Conference Championship";
-                    } else if (game.playoff === 's') {
-                        playoffInfo = "Super Bowl";
-                    }
-                    return playoffInfo + "<br>" +
-                        "<b>Elo Rating:</b> " + Math.round(game.elo_post) + "<br>" +
-                        "<b>Result: </b>" + game.team1 + ": " + game.score1 + " -- " + game.team2 + ": " + game.score2 + "<br>" +
-                        "<b>Date: </b>" + new Date(game.date).toISOString().slice(0, 10) + "<br>" +
-                        "<b>Win Prob: </b>" + parseFloat(game.elo_prob1 * 100).toFixed(1) + "%";
+                    const game = gamesData[this.point.index];
+                    const playoffStages = {
+                        null: "Regular Season",
+                        'w': "WildCard",
+                        'd': "Divisional",
+                        'c': "Conference Championship",
+                        's': "Super Bowl"
+                    };
+                    return `${playoffStages[game.playoff]}<br>
+                            <b>Elo Rating:</b> ${Math.round(game.elo_post)}<br>
+                            <b>Result:</b> ${game.team1}: ${game.score1} -- ${game.team2}: ${game.score2}<br>
+                            <b>Date:</b> ${new Date(game.date).toISOString().slice(0, 10)}<br>
+                            <b>Win Prob:</b> ${parseFloat(game.elo_prob1 * 100).toFixed(1)}%`;
                 }
-
             },
             series: [{
                 data: gamesData.map(game => game.elo_post),
@@ -85,7 +78,7 @@
                     lineColor: '{{ selected_team.color_hex }}',
                     fillColor: '{{ selected_team.color_hex }}',
                     radius: 4
-                },
+                }
             }],
             credits: {
                 enabled: false

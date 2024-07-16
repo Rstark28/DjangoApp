@@ -57,7 +57,13 @@ def historical_data(request):
 # request:    HttpRequest object
 # returns:    HttpResponse object rendering 'main/live_projections.html'
 def live_projections(request):
-    
+
+    # Ensure user is signed in
+    if not request.user.is_authenticated:
+        messages.error(request, 'Must be signed in to access this page.')
+        return render(request, 'main/home.html')
+
+    # Grab user and teams from db
     currentUser = request.user
     AllTeams = NFLTeam.objects.all()
 
@@ -233,6 +239,9 @@ def logout_view(request: HttpRequest) -> HttpResponse:
 # returns:    HttpResponse object rendering 'main/profile.html'
 def profile(request: HttpRequest) -> HttpResponse:
 
+    if not request.user.is_authenticated:
+        messages.error(request, 'Must be signed in to access this page.')
+        return render(request, 'main/home.html')
     return render(request, 'main/profile.html')
 
 class CustomPasswordResetView(PasswordResetView):

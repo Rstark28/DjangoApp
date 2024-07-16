@@ -1,66 +1,86 @@
 {% extends "main/base.html" %}
 
 {% block content %}
+{% load static %}
 {% load custom_filters %}
 <div class="container mt-5">
-    <h2 class="mb-4">NFL Projections Table</h2>
-    <div id="selectedTeams" class="mb-4"></div> <!-- Container to display selected week and team names -->
+    <h2 class="mb-4 text-center">NFL Projections Table</h2>
+    <div id="selectedTeams" class="alert alert-info mb-4 text-center"></div>
+    <!-- Container to display selected week and team names -->
     <form id="projectionForm" method="get" action="{% url 'main.live_projections' %}">
-        <input type="hidden" id="selectedTeamsInput" name="selectedTeams"> <!-- Hidden input to store selected teams data -->
-        <table class="table table-bordered">
-            <thead class="thead-light">
-                <tr>
-                    <th><a href="?sort_by=team__name">Team Name</a></th>
-                    <th><a href="?sort_by=-team__elo">Elo</a></th>
-                    <th><a href="?sort_by=-madePlayoffs">Make Playoffs</a></th>
-                    <th><a href="?sort_by=-wonDivision">Win Division</a></th>
-                    <th><a href="?sort_by=-wonConference">Win Conference</a></th>
-                    <th><a href="?sort_by=-wonSuperBowl">Win Super Bowl</a></th>
-                    {% for week in 1|to:18 %}
-                    <th>Week {{ week }}</th>
+        <input type="hidden" id="selectedTeamsInput" name="selectedTeams">
+        <!-- Hidden input to store selected teams data -->
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover">
+                <thead class="thead-light">
+                    <tr>
+                        <th><a href="?sort_by=team__name">Team Name</a></th>
+                        <th><a href="?sort_by=-team__elo">Elo</a></th>
+                        <th><a href="?sort_by=-madePlayoffs">Make Playoffs</a></th>
+                        <th><a href="?sort_by=-wonDivision">Win Division</a></th>
+                        <th><a href="?sort_by=-wonConference">Win Conference</a></th>
+                        <th><a href="?sort_by=-wonSuperBowl">Win Super Bowl</a></th>
+                        {% for week in 1|to:18 %}
+                        <th>Week {{ week }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for projection in projections %}
+                    <tr>
+                        <td>{{ projection.team.name }}</td>
+                        <td>{{ projection.team.elo }}</td>
+                        <td>{{ projection.madePlayoffs|divide:projection.n }}%</td>
+                        <td>{{ projection.wonDivision|divide:projection.n }}%</td>
+                        <td>{{ projection.wonConference|divide:projection.n }}%</td>
+                        <td>{{ projection.wonSuperBowl|divide:projection.n }}%</td>
+                        {% for week in 1|to:18 %}
+                        <td class="clickable-cell" data-value="{{ projection.team.name }}-{{ week }}"></td>
+                        {% endfor %}
+                    </tr>
                     {% endfor %}
-                </tr>
-            </thead>
-            <tbody>
-                {% for projection in projections %}
-                <tr>
-                    <td>{{ projection.team.name }}</td>
-                    <td>{{ projection.team.elo }}</td>
-                    <td>{{ projection.madePlayoffs|divide:projection.n }}%</td>
-                    <td>{{ projection.wonDivision|divide:projection.n }}%</td>
-                    <td>{{ projection.wonConference|divide:projection.n }}%</td>
-                    <td>{{ projection.wonSuperBowl|divide:projection.n }}%</td>
-                    {% for week in 1|to:18 %}
-                    <td><input type="checkbox" name="week{{ week }}[]"
-                            value="{{ projection.team.name }}-{{ week }}"></td>
-                    {% endfor %}
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        <button type="submit" class="btn btn-primary">Update Projections</button>
+                </tbody>
+            </table>
+        </div>
+        <div class="text-center">
+            <button type="submit" class="btn btn-primary">Update Projections</button>
+        </div>
     </form>
 </div>
 
-<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 <script>
     $(document).ready(function () {
-        $('input[type="checkbox"]').change(function () {
-            var selectedTeams = []; // Array to store selected teams and weeks
-            $('input[type="checkbox"]:checked').each(function () {
-                selectedTeams.push($(this).val()); // Add value of checked checkbox to array
+        $('.clickable-cell').on('click', function () {
+            var $cell = $(this);
+            if ($cell.hasClass('win')) {
+                $cell.removeClass('win').addClass('loss');
+            } else if ($cell.hasClass('loss')) {
+                $cell.removeClass('loss');
+            } else {
+                $cell.addClass('win');
+            }
+            updateSelectedTeams();
+        });
+
+        function updateSelectedTeams() {
+            var selectedTeams = [];
+            $('.clickable-cell.win').each(function () {
+                selectedTeams.push($(this).data('value') + '-W');
+            });
+            $('.clickable-cell.loss').each(function () {
+                selectedTeams.push($(this).data('value') + '-L');
             });
 
-            // Update the content of the selectedTeams div
             $('#selectedTeams').html(selectedTeams.map(function (item) {
-                return '<p>' + item + '</p>';
-            }).join(''));
+                return '<span class="badge badge-primary m-1">' + item + '</span>';
+            }).join(' '));
 
-            // Update the value of the hidden input field
             $('#selectedTeamsInput').val(selectedTeams.join(','));
-        });
+        }
     });
 </script>
+<link rel="stylesheet" href="{% static 'main/live_projections.css' %}">
 {% endblock content %}

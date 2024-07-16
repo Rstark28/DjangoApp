@@ -71,8 +71,8 @@ class Command(BaseCommand):
                     qb2_value_post=to_float(row['qb2_value_post']),
                     qbelo1_post=to_float(row['qbelo1_post']),
                     qbelo2_post=to_float(row['qbelo2_post']),
-                    score1=int(row['score1']),
-                    score2=int(row['score2']),
+                    score1=to_float(row['score1']),
+                    score2=to_float(row['score2']),
                     quality=to_float(row['quality']),
                     importance=to_float(row['importance']),
                     total_rating=to_float(row['total_rating'])
