@@ -61,6 +61,7 @@ def live_projections(request: HttpRequest) -> HttpResponse:
     base_games = all_games.filter(user=admin_user)
     
     projections = base_projections
+    
 
     if len(user_games) == 0 and request.user.id is not None:
         with transaction.atomic():
@@ -78,14 +79,13 @@ def live_projections(request: HttpRequest) -> HttpResponse:
         sort_by = 'team__name'
     
     projections = projections.order_by(sort_by)
-    
+    print(projections.first().made_playoffs)
     context = {
         'projections': projections,
         'picks': all_projections,
         'len': len(all_projections),
         'method': method
     }
-    
     return render(request, 'main/live_projections.html', context)
 
 def register(request: HttpRequest) -> HttpResponse:

@@ -81,6 +81,7 @@ class Command(BaseCommand):
             self.results_df.at[team, '75'] = np.percentile(self.result_dict[team], 75)
             self.results_df.at[team, 'stdev'] = np.std(self.result_dict[team])
             
+            print(self.results_df)
             Projection.objects.create(
                 team=self.teams.get(name=team), n=num_seasons,
                 mean=float(self.results_df.at[team, 'mean']),
@@ -382,11 +383,11 @@ class Command(BaseCommand):
 
         for team in self.teams:
             team_name = team.name
-            if self.tracker_df.at[team_name, 'seed'] <= 4 and self.tracker_df.at[team_name, 'Seed'] != -1:
+            if self.tracker_df.at[team_name, 'Seed'] <= 4 and self.tracker_df.at[team_name, 'Seed'] != -1:
                 self.results_df.at[team_name, 'div_champs'] += 1
-            if self.tracker_df.at[team_name, 'seed'] == 1:
+            if self.tracker_df.at[team_name, 'Seed'] == 1:
                 self.results_df.at[team_name, 'first_seed'] += 1
-            if self.tracker_df.at[team_name, 'seed'] <= 7 and self.tracker_df.at[team_name, 'Seed'] != -1:
+            if self.tracker_df.at[team_name, 'Seed'] <= 7 and self.tracker_df.at[team_name, 'Seed'] != -1:
                 self.results_df.at[team_name, 'playoffs'] += 1
             self.result_dict[team_name].append(self.tracker_df.at[team_name, 'tot_wins'])
 
