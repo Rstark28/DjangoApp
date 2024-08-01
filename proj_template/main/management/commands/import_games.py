@@ -81,17 +81,17 @@ class Command(BaseCommand):
                     
                 game = UpcomingGames.objects.create(
                     week = currWeek,
-                    awayTeam=currAway,
-                    homeTeam=currHome,
-                    homeScore = 0,
-                    awayScore = 0,
+                    away_team=currAway,
+                    home_team=currHome,
+                    home_score = 0,
+                    away_score = 0,
                     date=currDate,
                     season = 2024,
                     after_bye_home = homeBye,
                     after_bye_away = awayBye,
                     city = cityStr,
-                    isNeutral = False,
-                    isComplete = False
+                    is_neutral = False,
+                    is_complete = False
                 )
         self.stdout.write(self.style.SUCCESS("Successfully generate all games"))
                 
