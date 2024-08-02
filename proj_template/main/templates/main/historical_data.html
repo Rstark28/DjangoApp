@@ -33,6 +33,7 @@
         const gamesData = JSON.parse('{{ historical_games|escapejs }}');
 
         Highcharts.chart('container', {
+            colors: ['#2B908F', '#90EE7E', '#F45B5B', '#7798BF', '#AAEEEE', '#FF0066', '#EEAAEE', '#55BF3B', '#DF5353', '#7798BF', '#AAEEEE'],
             chart: {
                 type: 'line',
                 zoomType: 'x'

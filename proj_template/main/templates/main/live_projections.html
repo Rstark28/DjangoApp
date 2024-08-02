@@ -19,7 +19,7 @@
                         <th><a href="?sort_by=-made_playoffs">Make Playoffs</a></th>
                         <th><a href="?sort_by=-won_division">Win Division</a></th>
                         <th><a href="?sort_by=-won_conference">Win Conference</a></th>
-                        <th><a href="?sort_by=-won_superbowl">Win Super Bowl</a></th>
+                        <th><a href="?sort_by=-won_super_bowl">Win Super Bowl</a></th>
                         {% for week in 1|to:18 %}
                         <th>Week {{ week }}</th>
                         {% endfor %}
@@ -82,5 +82,4 @@
         }
     });
 </script>
-<link rel="stylesheet" href="{% static 'main/live_projections.css' %}">
 {% endblock content %}

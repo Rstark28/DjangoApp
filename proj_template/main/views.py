@@ -203,7 +203,7 @@ def live_projections(request):
     
 
     sort_by = request.GET.get('sort_by', 'team__name')
-    valid_sort_fields = ['team__name', '-team__elo', '-madePlayoffs', '-wonDivision', '-wonConference', '-wonSuperBowl']
+    valid_sort_fields = ['team__name', '-team__elo', '-made_playoffs', '-won_division', '-won_conference', '-won_super_bowl']
     
     if sort_by not in valid_sort_fields:
         sort_by = 'team__name'

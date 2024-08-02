@@ -1,3 +1,179 @@
+/* Color Variables */
+:root {
+  --primary-color: #30336b;
+  /* Dark Gray Blue */
+  --button-color: #e94560;
+  /* Soft Red */
+  --light-gray: #f5f5f5;
+  /* Light Gray for Text */
+  --medium-gray: #535c68;
+  /* Medium Gray for Backgrounds */
+  --white: #f5f5f5;
+  /* Off White */
+  --accent-green: #d4edda;
+  /* Soft Green */
+  --accent-red: #f8d7da;
+  /* Bright Red */
+  --background-color: #1a1a2e;
+  /* Dark Navy Blue */
+  --hover-color: #00aaff;
+  /* Light Blue Hover */
+  --message-success-bg: #2f4f4f;
+  /* Dark Slate Gray for Success Messages */
+  --message-error-bg: #5c2a2a;
+  /* Darker Red for Error Messages */
+  --message-warning-bg: #4b3621;
+  /* Darker Brown for Warning Messages */
+}
+
+/* Global Styles */
+body {
+  padding-top: 70px;
+  background-color: var(--background-color);
+  font-family: 'Roboto', sans-serif;
+  color: var(--light-gray);
+}
+
+/* Navbar Styles */
+.navbar {
+  background-color: var(--primary-color) !important;
+}
+
+.navbar-brand,
+.nav-link {
+  color: var(--white) !important;
+  font-weight: 600;
+}
+
+.nav-link:hover {
+  color: var(--hover-color) !important;
+  text-decoration: none;
+}
+
+/* Main Content Area */
+main {
+  background-color: var(--primary-color);
+  padding: 2rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+}
+
+/* Buttons */
+.btn-primary {
+  background-color: var(--button-color);
+  border-color: var(--button-color);
+  color: var(--white);
+}
+
+.btn-primary:hover {
+  background-color: var(--hover-color);
+  border-color: var(--hover-color);
+}
+
+/* Table Styles */
+.table {
+  background-color: var(--primary-color);
+  color: var(--background-color);
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.table th,
+.table td {
+  text-align: center;
+  vertical-align: middle;
+  padding: 0.75rem;
+  border-color: var(--background-color);
+}
+
+.table th {
+  background-color: var(--background-color);
+  color: var(--white);
+  font-weight: bold;
+}
+
+.table-hover tbody tr:hover {
+  background-color: var(--hover-color);
+  color: var(--white);
+}
+
+.table-responsive {
+  margin-bottom: 2rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+}
+
+.table th a {
+  color: var(--white);
+  text-decoration: none;
+}
+
+.table th a:hover {
+  color: var(--hover-color);
+  text-decoration: none;
+}
+
+/* Clickable Cells */
+.clickable-cell {
+  cursor: pointer;
+  background-color: var(--primary-color);
+  color: var(--light-gray);
+}
+
+.clickable-cell.win {
+  background-color: var(--accent-green) !important;
+  color: var(--white);
+}
+
+.clickable-cell.loss {
+  background-color: var(--accent-red) !important;
+  color: var(--white);
+}
+
+/* Badge Styles */
+.badge-primary {
+  background-color: var(--button-color);
+  color: var(--white);
+}
+
+/* Form Styles */
+form {
+  margin-top: 2rem;
+}
+
+.btn-primary {
+  background-color: var(--button-color);
+  border-color: var(--button-color);
+  color: var(--white);
+}
+
+.btn-primary:hover {
+  background-color: var(--hover-color);
+  border-color: var(--hover-color);
+}
+
+.alert-info {
+  background-color: var(--medium-gray);
+  color: var(--white);
+}
+
+/* Footer */
+footer {
+  background-color: var(--primary-color);
+  color: var(--white);
+  padding: 1rem 0;
+  text-align: center;
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+
+  .navbar-brand,
+  .nav-link {
+    font-size: 0.9rem;
+  }
+}
+
 .messages {
   list-style-type: none;
   margin: 0;
@@ -5,26 +181,77 @@
 }
 
 .messages li {
-  padding: 10px 15px;
-  margin-bottom: 10px;
+  padding: 12px 20px;
+  margin-bottom: 12px;
+  border-radius: 5px;
   border: 1px solid transparent;
-  border-radius: 4px;
+  font-size: 16px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  color: var(--light-gray);
 }
 
 .messages li.success {
-  background-color: #dff0d8;
-  border-color: #d0e9c6;
-  color: #3c763d;
+  background-color: #2e7d32;
+  border-color: #4caf50;
+  color: #e8f5e9;
 }
 
 .messages li.error {
-  background-color: #f2dede;
-  border-color: #ebccd1;
-  color: #a94442;
+  background-color: #c62828;
+  border-color: #f44336;
+  color: #ffebee;
 }
 
 .messages li.warning {
-  background-color: #fcf8e3;
-  border-color: #faebcc;
-  color: #8a6d3b;
+  background-color: #ff9800;
+  border-color: #ffc107;
+  color: #fff8e1;
+}
+
+.messages li .icon {
+  margin-right: 10px;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.messages li a {
+  color: #ffffff;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.messages li a:hover {
+  color: #e0e0e0;
+}
+
+@media (max-width: 768px) {
+  .messages li {
+    font-size: 14px;
+    padding: 10px 15px;
+  }
+}
+
+/* Form Styles */
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.input-group {
+  margin-bottom: 1.5rem;
+}
+
+.btn-primary {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+}
+
+.btn-link {
+  margin-top: 1rem;
+  padding: 0.5rem 0;
+}
+
+.form-text.text-muted {
+  color: var(--light-gray) !important;
 }
