@@ -10,7 +10,7 @@ import copy
 from django.contrib.auth import authenticate, login as auth_login, logout
 from django.shortcuts import render, redirect, get_object_or_404
 from .forms import CreateUserForm, CustomPasswordResetForm
-from .models import NFLTeam, Projection, UpcomingGames
+from .models import NFLTeam, Projection, UpcomingGames, Quarterback, QuarterbackEloHistory
 from django.http import HttpRequest, HttpResponse
 import json
 
@@ -24,34 +24,55 @@ def home(request: HttpRequest) -> HttpResponse:
     return render(request, 'main/home.html')
 
 # name:       historical_data
-# purpose:    Renders the historical data page.
+# purpose:    Renders the historical data page for team chart.
 # parameters:
 # request:    HttpRequest object
 # returns:    HttpResponse object rendering 'main/historical_data.html'
 def historical_data(request):
     team_abbreviation = request.GET.get('team_abbreviation')
-    selected_team = None
+    quarterback_id = request.GET.get('quarterback')
+    
     historical_games = []
+    selected_team = None
+    selected_quarterback = None
+    quarterback_history = []
 
     if team_abbreviation:
-        selected_team = get_object_or_404(NFLTeam, abbreviation=team_abbreviation)
-        historical_games = list(selected_team.historical_games.values(
-            'date', 'elo1_post', 'elo2_post', 'team1', 'team2', 'score1', 'score2', 'elo_prob1', 'elo_prob2', 'playoff', 'season'
-        ))
+        selected_team = get_object_or_404(
+            NFLTeam.objects.only('abbreviation'),
+            abbreviation=team_abbreviation
+        )
 
-        # Map the correct Elo score based on the selected team
-        for game in historical_games:
-            if game['team1'] == team_abbreviation:
-                game['elo_post'] = game['elo1_post']
-            else:
-                game['elo_post'] = game['elo2_post']
+        historical_games = selected_team.historical_games.values(
+            'date', 'elo1_post', 'elo2_post', 'team1', 'team2', 'score1', 'score2', 'elo_prob1', 'elo_prob2', 'playoff', 'season'
+        )
+
+        historical_games = [
+            {
+                **game,
+                'elo_post': game['elo1_post'] if game['team1'] == team_abbreviation else game['elo2_post']
+            }
+            for game in historical_games
+        ]
+    
+    if quarterback_id:
+        selected_quarterback = get_object_or_404(Quarterback, id=quarterback_id)
+        quarterback_history = QuarterbackEloHistory.objects.filter(quarterback=selected_quarterback).values(
+            'date', 'elo_value'
+        )
 
     context = {
-        'nfl_teams': NFLTeam.objects.all(),
+        'nfl_teams': NFLTeam.objects.only('abbreviation', 'name'),
+        'quarterbacks': Quarterback.objects.only('id', 'name'),
         'selected_team': selected_team,
+        'selected_quarterback': selected_quarterback,
         'historical_games': json.dumps(historical_games, default=str),
+        'quarterback_history': json.dumps(list(quarterback_history), default=str),
     }
+    
     return render(request, 'main/historical_data.html', context)
+
+
 
 # name:       live_projections
 # purpose:    Renders the live projections page.
@@ -203,7 +224,7 @@ def live_projections(request):
     
 
     sort_by = request.GET.get('sort_by', 'team__name')
-    valid_sort_fields = ['team__name', '-team__elo', '-made_playoffs', '-won_division', '-won_conference', '-won_super_bowl']
+    valid_sort_fields = ['team__name', '-team__elo', '-madePlayoffs', '-wonDivision', '-wonConference', '-wonSuperBowl']
     
     if sort_by not in valid_sort_fields:
         sort_by = 'team__name'

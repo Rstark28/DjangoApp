@@ -4,36 +4,62 @@
 <div class="container mt-5 text-center">
     <h1>The History Of Elo Scores In the NFL</h1>
 
+    <!-- Team Selection Form -->
     <form id="teamForm" class="form-inline justify-content-center mb-3" method="get"
         action="{% url 'main.historical_data' %}">
         <select id="teamSelect" name="team_abbreviation" class="form-control mr-2" onchange="this.form.submit()">
             <option value="">Change Team</option>
             {% for team in nfl_teams %}
-            <option value="{{ team.abbreviation }}" style="color: {{ team.color_hex }};"
-                {% if selected_team and team.abbreviation == selected_team.abbreviation %} selected {% endif %}>
+            <option value="{{ team.abbreviation }}" style="color: {{ team.color_hex }};" {% if selected_team and team.abbreviation == selected_team.abbreviation %} selected {% endif %}>
                 {{ team.name }}
             </option>
             {% endfor %}
         </select>
     </form>
 
-    <h2>{{ selected_team.name }}</h2>
+    <!-- Team Graph -->
     {% if selected_team %}
+    <h2>{{ selected_team.name }}</h2>
     <div id="container" style="width:100%; height:400px;"></div>
     {% else %}
     <p>Please select a team to view historical games.</p>
     {% endif %}
+
+    <!-- Quarterback Selection Form -->
+    <form id="quarterbackForm" class="form-inline justify-content-center mb-3" method="get"
+        action="{% url 'main.historical_data' %}">
+        <select id="quarterbackSelect" name="quarterback" class="form-control mr-2" onchange="this.form.submit()">
+            <option value="">Change Quarterback</option>
+            {% for qb in quarterbacks %}
+            <option value="{{ qb.id }}" {% if selected_quarterback and qb.id == selected_quarterback.id %} selected {% endif %}>
+                {{ qb.name }}
+            </option>
+            {% endfor %}
+        </select>
+    </form>
+
+    <!-- Quarterback Graph -->
+    {% if selected_quarterback %}
+    <h2>{{ selected_quarterback.name }}</h2>
+    <div id="qb-container" style="width:100%; height:400px;"></div>
+    {% else %}
+    <p>Please select a quarterback to view Elo history.</p>
+    {% endif %}
 </div>
 
-{% if historical_games %}
+{% if historical_games or quarterback_history %}
 <script src="https://code.highcharts.com/highcharts.js"></script>
 <script src="https://code.highcharts.com/modules/exporting.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
+
 <script>
     document.addEventListener('DOMContentLoaded', function () {
+        // Team Graph
+        {% if historical_games %}
         const gamesData = JSON.parse('{{ historical_games|escapejs }}');
 
         Highcharts.chart('container', {
-            colors: ['#2B908F', '#90EE7E', '#F45B5B', '#7798BF', '#AAEEEE', '#FF0066', '#EEAAEE', '#55BF3B', '#DF5353', '#7798BF', '#AAEEEE'],
             chart: {
                 type: 'line',
                 zoomType: 'x'
@@ -42,9 +68,8 @@
                 text: 'Elo Scores Over Time'
             },
             xAxis: {
-                type: 'datetime',
                 title: {
-                    text: 'Game Date'
+                    text: 'Season'
                 },
                 categories: gamesData.map(game => game.season)
             },
@@ -71,13 +96,70 @@
                 }
             },
             series: [{
-                data: gamesData.map(game => game.elo_post),
+                data: gamesData.map(game => ({
+                    y: game.elo_post,
+                    marker: {
+                        radius: game.playoff === 's' ? (game.win ? 8 : 6) : 4,
+                        fillColor: game.playoff === 's' ? 'yellow' : (['w', 'd', 'c'].includes(game.playoff) ? 'white' : '{{ selected_team.color_hex }}'), 
+                        lineWidth: 2,
+                        lineColor: '{{ selected_team.color_hex }}'
+                    }
+                })),
                 name: 'Elo Score',
                 color: '{{ selected_team.color_hex }}',
+                lineWidth: 3
+            }],
+            credits: {
+                enabled: false
+            }
+        });
+        {% endif %}
+
+        // Quarterback Dropdown
+        $('#quarterbackSelect').select2({
+            placeholder: "Select a quarterback",
+            width: 'resolve'
+        });
+
+        // Quarterback Graph
+        {% if quarterback_history %}
+        const qbData = JSON.parse('{{ quarterback_history|escapejs }}');
+
+        Highcharts.chart('qb-container', {
+            chart: {
+                type: 'line',
+                zoomType: 'x'
+            },
+            title: {
+                text: 'Quarterback Elo Scores Over Time'
+            },
+            xAxis: {
+                type: 'datetime',
+                title: {
+                    text: 'Date'
+                },
+                categories: qbData.map(record => record.date)
+            },
+            yAxis: {
+                title: {
+                    text: 'Elo Score'
+                }
+            },
+            tooltip: {
+                formatter: function () {
+                    const record = qbData[this.point.index];
+                    return `<b>Elo Rating:</b> ${Math.round(record.elo_value)}<br>
+                            <b>Date:</b> ${new Date(record.date).toISOString().slice(0, 10)}`;
+                }
+            },
+            series: [{
+                data: qbData.map(record => record.elo_value),
+                name: 'Elo Score',
+                color: '#007bff',
                 lineWidth: 3,
                 marker: {
-                    lineColor: '{{ selected_team.color_hex }}',
-                    fillColor: '{{ selected_team.color_hex }}',
+                    lineColor: '#007bff',
+                    fillColor: '#007bff',
                     radius: 4
                 }
             }],
@@ -85,6 +167,7 @@
                 enabled: false
             }
         });
+        {% endif %}
     });
 </script>
 {% endif %}

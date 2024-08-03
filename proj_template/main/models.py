@@ -52,11 +52,21 @@ class HistoricalData(models.Model):
         return f"{self.date} - {self.team1} vs {self.team2}"
 
 class Quarterback(models.Model):
-    name = models.CharField(max_length=100)
-    qbr = models.FloatField()
+    name = models.CharField(max_length=100, unique=True)
 
     def __str__(self):
         return self.name
+
+class QuarterbackEloHistory(models.Model):
+    quarterback = models.ForeignKey(Quarterback, on_delete=models.CASCADE, related_name='elo_history')
+    date = models.DateField()
+    elo_value = models.FloatField()
+
+    class Meta:
+        unique_together = ('quarterback', 'date')
+
+    def __str__(self):
+        return f"{self.quarterback.name} - {self.date} - {self.elo_value}"
 
 class NFLTeam(models.Model):
     name = models.CharField(max_length=100)
