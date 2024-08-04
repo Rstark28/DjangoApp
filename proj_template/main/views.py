@@ -161,7 +161,7 @@ def live_projections(request):
             for projection in baseProjections:
                 userProjection = copy.copy(projection)
                 userProjection.id = None
-                userProjection.user = request.user.id
+                userProjection.user = request.user
                 userProjection.save()
         userProjections = allProjections.filter(user=request.user)
     
